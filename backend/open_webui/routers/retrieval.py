@@ -951,23 +951,14 @@ async def update_rag_config(request: Request, form_data: ConfigForm, user=Depend
     # RAG settings
     config = await get_retrieval_config()
     if USE_SLIM:
-        if form_data.web:
-            web_engine = (
-                form_data.web.WEB_LOADER_ENGINE
-                if form_data.web.WEB_LOADER_ENGINE is not None
-                else config.WEB_LOADER_ENGINE
+        if (
+            form_data.web
+            and form_data.web.WEB_LOADER_ENGINE == 'playwright'
+            and config.WEB_LOADER_ENGINE != 'playwright'
+        ):
+            raise HTTPException(
+                400, 'Playwright is unavailable in slim. Use basic HTTP fetching or an external web loader.'
             )
-            browser_url = (
-                form_data.web.PLAYWRIGHT_WS_URL
-                if form_data.web.PLAYWRIGHT_WS_URL is not None
-                else config.PLAYWRIGHT_WS_URL
-            )
-            if (
-                web_engine == 'playwright'
-                and not browser_url
-                and (web_engine != config.WEB_LOADER_ENGINE or browser_url != config.PLAYWRIGHT_WS_URL)
-            ):
-                raise HTTPException(400, 'Configure PLAYWRIGHT_WS_URL. Slim requires a remote browser.')
         if form_data.TEXT_SPLITTER == 'token_transformers' and config.TEXT_SPLITTER != 'token_transformers':
             raise HTTPException(
                 400, 'Transformers tokenization is unavailable in slim. Use character or token splitting.'

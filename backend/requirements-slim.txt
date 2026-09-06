@@ -1,5 +1,6 @@
-# External-services image. Keep shared package pins aligned with requirements.txt.
-# NumPy is used for cosine scoring; pandas is required by the remote Milvus client.
+# Slim: external AI services, SQLite/PostgreSQL app data, pgvector, local file storage.
+# No Playwright, cloud-storage SDKs, or other database clients.
+# Keep shared package pins aligned with requirements.txt. NumPy is used for cosine scoring.
 numpy==2.4.6
 typer==0.25.1
 fastapi==0.136.3
@@ -39,6 +40,7 @@ redis==8.0.1
 hiredis==3.4.0
 
 APScheduler==3.11.2
+python-dateutil==2.9.0.post0
 pytz==2026.2
 
 loguru==0.7.3
@@ -55,9 +57,6 @@ langchain-classic==1.0.7
 langchain-text-splitters==1.1.2
 
 fake-useragent==2.2.0
-chromadb-client==1.5.9
-weaviate-client==4.20.3
-opensearch-py==3.2.0
 
 ftfy==6.3.1
 chardet==7.4.3
@@ -66,7 +65,6 @@ fpdf2==2.8.7
 Markdown==3.10.2
 beautifulsoup4==4.14.3
 lxml==6.1.1
-pandas==3.0.3
 validators==0.35.0
 psutil==7.2.2
 
@@ -80,34 +78,17 @@ ddgs==9.14.4
 
 azure-ai-documentintelligence==1.0.2
 azure-identity==1.25.3
-azure-storage-blob==12.29.0
 azure-search-documents==12.0.0
-
-## Google Cloud storage
-
-googleapis-common-protos==1.75.0
-google-cloud-storage==3.9.0
 
 ## Databases
 psycopg2-binary==2.9.12
 pgvector==0.4.2
 
-PyMySQL==1.2.0
-boto3==1.42.62
-# mariadb==1.1.14 should be added if you want to support MariaDB
-# valkey-glide-sync==2.3.1 # optional: install manually if VECTOR_DB=valkey
-
-pymilvus==2.6.14
-qdrant-client==1.18.0
-playwright==1.60.0 # Caution: version must match docker-compose.playwright.yaml - Update the docker-compose.yaml if necessary
-elasticsearch==9.4.1
-pinecone==6.0.2
-oracledb==3.4.2
-
 ## LDAP
 ldap3==2.9.1
 
 ## Trace
+googleapis-common-protos==1.75.0
 opentelemetry-api==1.42.1
 opentelemetry-sdk==1.42.1
 opentelemetry-exporter-otlp==1.42.1

@@ -499,12 +499,12 @@ CODE_INTERPRETER_PYODIDE_PROMPT = """
 # Vector Database
 ####################################
 
-VECTOR_DB = os.getenv('VECTOR_DB', 'chroma')
+VECTOR_DB = os.getenv('VECTOR_DB', 'pgvector' if USE_SLIM else 'chroma')
 
 # Chroma
 CHROMA_DATA_PATH = f'{DATA_DIR}/vector_db'
 
-if VECTOR_DB == 'chroma':
+if VECTOR_DB == 'chroma' and not USE_SLIM:
     import chromadb
 
     CHROMA_TENANT = os.getenv('CHROMA_TENANT', chromadb.DEFAULT_TENANT)

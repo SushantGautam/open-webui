@@ -31,7 +31,6 @@ import validators
 from requests.adapters import HTTPAdapter
 from fastapi import HTTPException
 from fastapi.concurrency import run_in_threadpool
-from bs4 import BeautifulSoup
 from langchain_community.document_loaders import PlaywrightURLLoader, WebBaseLoader
 from langchain_community.document_loaders.base import BaseLoader
 from langchain_core.documents import Document
@@ -646,26 +645,6 @@ class SafeMicrosoftWebIQLoader(BaseLoader, RateLimitMixin, URLProcessingMixin):
                 raise e
 
 
-class TextHtmlEvaluator:
-    """Extract rendered text without Unstructured or its local NLP dependencies."""
-
-    def __init__(self, remove_selectors=None):
-        self.remove_selectors = remove_selectors or []
-
-    def text(self, html):
-        soup = BeautifulSoup(html, 'lxml')
-        for selector in ['script', 'style', 'noscript', *self.remove_selectors]:
-            for element in soup.select(selector):
-                element.decompose()
-        return soup.get_text(separator='\n', strip=True)
-
-    def evaluate(self, page, browser, response):
-        return self.text(page.content())
-
-    async def evaluate_async(self, page, browser, response):
-        return self.text(await page.content())
-
-
 class SafePlaywrightURLLoader(PlaywrightURLLoader, RateLimitMixin, URLProcessingMixin):
     """Load HTML pages safely with Playwright, supporting SSL verification, rate limiting, and remote browser connection.
 
@@ -697,8 +676,10 @@ class SafePlaywrightURLLoader(PlaywrightURLLoader, RateLimitMixin, URLProcessing
         playwright_timeout: Optional[int] = 10000,
     ):
         """Initialize with additional safety parameters and remote browser support."""
-        if USE_SLIM and not playwright_ws_url:
-            raise HTTPException(503, 'Configure PLAYWRIGHT_WS_URL. Slim requires a remote browser.')
+        if USE_SLIM:
+            raise HTTPException(
+                503, 'Playwright is unavailable in slim. Use basic HTTP fetching or an external web loader.'
+            )
 
         proxy_server = proxy.get('server') if proxy else None
         if trust_env and not proxy_server:
@@ -715,8 +696,7 @@ class SafePlaywrightURLLoader(PlaywrightURLLoader, RateLimitMixin, URLProcessing
             urls=web_paths,
             continue_on_failure=continue_on_failure,
             headless=headless if playwright_ws_url is None else False,
-            remove_selectors=None if USE_SLIM else remove_selectors,
-            evaluator=TextHtmlEvaluator(remove_selectors) if USE_SLIM else None,
+            remove_selectors=remove_selectors,
             proxy=proxy,
         )
         self.verify_ssl = verify_ssl
