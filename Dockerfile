@@ -138,12 +138,13 @@ RUN if [ "$USE_SLIM" = "true" ] && { [ "$USE_CUDA" = "true" ] || [ "$USE_OLLAMA"
     echo "USE_SLIM cannot be combined with USE_CUDA or USE_OLLAMA" >&2; exit 1; fi
 
 # Keep the slim runtime free of local document/audio processing tools.
+# Git-based tool requirements require the standard image.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    git curl jq ca-certificates \
+    curl jq ca-certificates \
     && if [ "$USE_SLIM" != "true" ]; then \
     apt-get install -y --no-install-recommends \
-    build-essential pandoc gcc libmariadb-dev ffmpeg libsm6 libxext6; \
+    git build-essential pandoc gcc libmariadb-dev ffmpeg libsm6 libxext6; \
     fi && if [ "$USE_OLLAMA" = "true" ]; then \
     apt-get install -y --no-install-recommends zstd; \
     fi && rm -rf /var/lib/apt/lists/*
