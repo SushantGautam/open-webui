@@ -210,7 +210,7 @@
 						<option disabled selected value="">{$i18n.t('Select a engine')}</option>
 						{#each webSearchEngines as engine}
 							{#if engine === 'duckduckgo' || engine === 'ddgs'}
-								<option value={engine}>DDGS</option>
+								<option value={engine} disabled={$config?.features?.slim}>DDGS</option>
 							{:else if engine === 'serphouse'}
 								<option value={engine}>SERPHouse</option>
 							{:else}

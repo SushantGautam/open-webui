@@ -953,6 +953,15 @@ async def update_rag_config(request: Request, form_data: ConfigForm, user=Depend
     if USE_SLIM:
         if (
             form_data.web
+            and form_data.web.WEB_SEARCH_ENGINE == 'duckduckgo'
+            and config.WEB_SEARCH_ENGINE != 'duckduckgo'
+        ):
+            raise HTTPException(
+                400,
+                'DDGS is unavailable in slim. Configure another web search provider in Admin Settings > Web Search.',
+            )
+        if (
+            form_data.web
             and form_data.web.WEB_LOADER_ENGINE == 'playwright'
             and config.WEB_LOADER_ENGINE != 'playwright'
         ):
