@@ -26,6 +26,7 @@ ARG GID=0
 ######## WebUI frontend ########
 FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
 ARG BUILD_HASH
+ARG USE_SLIM
 
 # Set Node.js options (heap limit Allocation failed - JavaScript heap out of memory)
 # ENV NODE_OPTIONS="--max-old-space-size=4096"
@@ -40,7 +41,8 @@ RUN npm ci --force
 
 COPY . .
 ENV APP_BUILD_HASH=${BUILD_HASH}
-RUN npm run build
+RUN npm run build && \
+    if [ "$USE_SLIM" = "true" ]; then find build -type f -name '*.map' -delete; fi
 
 ######## WebUI backend ########
 FROM python:3.11-slim-bookworm AS base
@@ -146,6 +148,7 @@ RUN set -e; \
     pip3 install --no-cache-dir uv; \
     if [ "$USE_SLIM" = "true" ]; then \
     uv pip install --system -r requirements-slim.txt --no-cache-dir; \
+    pip3 uninstall -y uv; \
     elif [ "$USE_CUDA" = "true" ]; then \
     # If you use CUDA the whisper and embedding model will be downloaded on first use
     # fix: pin torch<=2.9.1 - torch 2.10.0 aarch64 wheels cause SIGILL on ARM devices (RPi 4 Cortex-A72) #21349
