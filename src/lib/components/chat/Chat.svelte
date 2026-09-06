@@ -2752,10 +2752,13 @@
 	const chatCompletionEventHandler = async (data, message, chatId) => {
 		const { id, done, choices, content, output, sources, selected_model_id, error, usage } = data;
 
-		// Store raw OR-aligned output items from backend
+        // Store raw OR-aligned output items from backend
 		if (output) {
 			message.output = output;
 			message.content = getOutputText(output);
+			if (data.type === 'response.output_text.delta' && navigator.vibrate && $settings?.hapticFeedback) {
+				navigator.vibrate(5);
+			}
 			dispatchCallOverlayAudio(message);
 		}
 
