@@ -1624,6 +1624,9 @@ async def chat_completion(
 
     async def process_chat(request, form_data, user, metadata, model, tasks=None):
         try:
+            ctx = None
+            if not form_data.get('stream') and metadata.get('assistant_message_id'):
+                ctx = await build_chat_response_context(request, form_data, user, model, metadata, tasks, [])
             form_data, metadata, events = await process_chat_payload(request, form_data, user, metadata, model)
 
             if await drain_approved_tool_calls(request, form_data, user, model, metadata):
@@ -1639,7 +1642,10 @@ async def chat_completion(
             if isinstance(response, JSONResponse) and response.status_code >= 400:
                 raise Exception(get_response_error_detail(response))
 
-            ctx = await build_chat_response_context(request, form_data, user, model, metadata, tasks, events)
+            if ctx is None:
+                ctx = await build_chat_response_context(request, form_data, user, model, metadata, tasks, events)
+            else:
+                ctx.update(form_data=form_data, metadata=metadata, events=events)
 
             return await process_chat_response(response, ctx)
         except asyncio.CancelledError:
