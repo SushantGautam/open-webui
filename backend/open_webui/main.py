@@ -1625,7 +1625,7 @@ async def chat_completion(
     async def process_chat(request, form_data, user, metadata, model, tasks=None):
         try:
             ctx = None
-            if not form_data.get('stream') and metadata.get('assistant_message_id'):
+            if metadata.get('assistant_message_id'):
                 ctx = await build_chat_response_context(request, form_data, user, model, metadata, tasks, [])
             form_data, metadata, events = await process_chat_payload(request, form_data, user, metadata, model)
 

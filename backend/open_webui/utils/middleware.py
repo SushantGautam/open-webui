@@ -3107,7 +3107,7 @@ async def get_event_emitter_and_caller(metadata):
 async def build_chat_response_context(request, form_data, user, model, metadata, tasks, events):
     event_emitter, event_caller = await get_event_emitter_and_caller(metadata)
     assistant_message = None
-    if not form_data.get('stream') and metadata.get('assistant_message_id'):
+    if metadata.get('assistant_message_id'):
         # Preserve the original output before request conversion strips it from temporary chats.
         if is_saved_chat_id(metadata.get('chat_id')):
             assistant_message = await Chats.get_message_by_id_and_message_id(
@@ -4243,6 +4243,7 @@ async def streaming_chat_response_handler(response, ctx):
     event_caller = ctx['event_caller']
     chat_id = metadata.get('chat_id') or ''
     save_to_chat = is_saved_chat_id(chat_id)
+    continuing = bool(metadata.get('assistant_message_id'))
 
     extra_params = {
         '__event_emitter__': event_emitter,
@@ -4553,9 +4554,13 @@ async def streaming_chat_response_handler(response, ctx):
                 return output, end_flag
 
             message = (
-                await Chats.get_message_by_id_and_message_id(metadata['chat_id'], metadata['message_id'])
-                if save_to_chat
-                else None
+                ctx.get('assistant_message')
+                if continuing
+                else (
+                    await Chats.get_message_by_id_and_message_id(metadata['chat_id'], metadata['message_id'])
+                    if save_to_chat
+                    else None
+                )
             )
 
             tool_calls = []
@@ -4583,7 +4588,7 @@ async def streaming_chat_response_handler(response, ctx):
                     and prior_output[-1].get('status') == 'in_progress'
                 ):
                     msg_parts = prior_output[-1].get('content', [])
-                    if not msg_parts or (len(msg_parts) == 1 and not msg_parts[0].get('text', '').strip()):
+                    if not msg_parts or (len(msg_parts) == 1 and not msg_parts[0].get('text', '')):
                         prior_output.pop()
                 output = []
                 content_parts = []
@@ -4604,10 +4609,33 @@ async def streaming_chat_response_handler(response, ctx):
                 else:
                     output = []
 
+            if continuing and not prior_output:
+                # Keep the prefix separate from provider output indices and tool follow-up messages.
+                prior_output, output = output, []
+                content_parts = []
+
             usage = None
             last_response_id = None
 
             def full_output():
+                if (
+                    continuing
+                    and prior_output
+                    and output
+                    and prior_output[-1].get('type') == output[0].get('type') == 'message'
+                    and prior_output[-1].get('role', 'assistant') == 'assistant'
+                    and output[0].get('role', 'assistant') == 'assistant'
+                ):
+                    return [
+                        *prior_output[:-1],
+                        {
+                            **prior_output[-1],
+                            **output[0],
+                            'id': prior_output[-1].get('id'),
+                            'content': [*prior_output[-1].get('content', []), *output[0].get('content', [])],
+                        },
+                        *output[1:],
+                    ]
                 return prior_output + output if prior_output else output
 
             def get_message_error_content(error):
@@ -4722,7 +4750,9 @@ async def streaming_chat_response_handler(response, ctx):
                             response_stream_task_id,
                             chat_id,
                             metadata.get('message_id'),
-                            joined_content or get_output_text(current_stream_output),
+                            get_output_text(current_stream_output)
+                            if continuing
+                            else joined_content or get_output_text(current_stream_output),
                             current_stream_output,
                         )
 
@@ -4755,8 +4785,10 @@ async def streaming_chat_response_handler(response, ctx):
                         if delta_count >= threshold and last_delta_data:
                             await event_emitter(
                                 {
-                                    'type': 'response:completion',
-                                    'data': last_delta_data,
+                                    'type': 'chat:completion' if continuing else 'response:completion',
+                                    'data': {'output': full_output(), 'type': last_delta_data.get('type')}
+                                    if continuing
+                                    else last_delta_data,
                                 }
                             )
                             await save_current_response_stream()
@@ -4805,8 +4837,10 @@ async def streaming_chat_response_handler(response, ctx):
                         await flush_pending_delta_data()
                         await event_emitter(
                             {
-                                'type': 'response:completion',
-                                'data': get_response_completion_event_data(response_data),
+                                'type': 'chat:completion' if continuing else 'response:completion',
+                                'data': {'output': full_output()}
+                                if continuing
+                                else get_response_completion_event_data(response_data),
                             }
                         )
                         await save_current_response_stream(stream_output)
@@ -5472,7 +5506,7 @@ async def streaming_chat_response_handler(response, ctx):
 
                     if output:
                         # Clean up the last message item
-                        if output[-1].get('type') == 'message':
+                        if output[-1].get('type') == 'message' and not continuing:
                             parts = output[-1].get('content', [])
                             if parts and parts[-1].get('type') == 'output_text':
                                 parts[-1]['text'] = parts[-1]['text'].strip()
@@ -6033,7 +6067,7 @@ async def streaming_chat_response_handler(response, ctx):
                                     prior_output.pop()
                             output = []
                             await stream_body_handler(res, new_form_data)
-                            output[:0] = prior_output
+                            output = full_output()
                             prior_output = []
                         elif getattr(res, 'status_code', 200) >= 400:
                             await emit_message_error(get_message_error_content(get_response_error_detail(res)))
@@ -6274,7 +6308,12 @@ async def streaming_chat_response_handler(response, ctx):
 
                 await clear_response_stream(request.app.state.redis, response_stream_task_id)
                 await publish_chat_finished_event(
-                    request, user, metadata, title, ''.join(content_parts), current_output
+                    request,
+                    user,
+                    metadata,
+                    title,
+                    get_output_text(current_output) if continuing else ''.join(content_parts),
+                    current_output,
                 )
 
                 await event_emitter(
@@ -6285,7 +6324,9 @@ async def streaming_chat_response_handler(response, ctx):
                 )
 
                 ctx['assistant_message'] = {
-                    'content': ''.join(content_parts) or get_output_text(current_output),
+                    'content': get_output_text(current_output)
+                    if continuing
+                    else ''.join(content_parts) or get_output_text(current_output),
                     'output': current_output,
                     **({'usage': usage} if usage else {}),
                 }
