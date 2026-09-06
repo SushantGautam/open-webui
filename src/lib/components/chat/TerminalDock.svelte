@@ -73,6 +73,9 @@
 					{ signal: controller.signal }
 				);
 				if (disposed || !panes[tab.id]) return;
+				if (!tab.loaded) {
+					panes[tab.id].write(`$ ${tab.command.replace(/\r?\n/g, '\r\n')}\r\n`);
+				}
 				if (result.truncated) panes[tab.id].write('\r\n[Earlier output omitted]\r\n');
 				panes[tab.id].write(result.output.map((entry) => entry.data).join(''));
 				tabs = tabs.map((item) =>
