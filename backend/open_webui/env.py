@@ -42,12 +42,13 @@ except ImportError:
     print('dotenv not installed, skipping...')
 
 DOCKER = os.getenv('DOCKER', 'False').lower() == 'true'
+USE_SLIM = os.getenv('USE_SLIM_DOCKER', 'False').lower() == 'true'
 
 USE_CUDA = os.getenv('USE_CUDA_DOCKER', 'false')
 DEVICE_TYPE = 'cpu'
 _cuda_error: Optional[str] = None
 
-if USE_CUDA.lower() == 'true':
+if not USE_SLIM and USE_CUDA.lower() == 'true':
     try:
         import torch  # noqa: E402
 
@@ -59,7 +60,7 @@ if USE_CUDA.lower() == 'true':
         os.environ['USE_CUDA_DOCKER'] = 'false'
         USE_CUDA = 'false'
 
-if sys.platform == 'darwin' and DEVICE_TYPE == 'cpu':
+if not USE_SLIM and sys.platform == 'darwin' and DEVICE_TYPE == 'cpu':
     try:
         import torch  # noqa: E402
 
@@ -844,7 +845,7 @@ MINERU_MAX_MARKDOWN_BYTES = (
 # When enabled, skips pydub-based preprocessing (format conversion, compression,
 # and chunked splitting) before sending files to processing engines. Useful when
 # the upstream provider handles these steps or when ffmpeg is unavailable.
-BYPASS_PYDUB_PREPROCESSING = os.getenv('BYPASS_PYDUB_PREPROCESSING', 'False').lower() == 'true'
+BYPASS_PYDUB_PREPROCESSING = USE_SLIM or os.getenv('BYPASS_PYDUB_PREPROCESSING', 'False').lower() == 'true'
 
 # When disabled (default), the OpenAI catch-all proxy endpoint (/{path:path})
 # is blocked. Enable only if you need direct passthrough to upstream OpenAI-
