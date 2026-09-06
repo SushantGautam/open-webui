@@ -226,10 +226,11 @@
 							title={`${tab.command} (${!tab.available ? 'Unavailable' : tab.status === 'running' ? 'Running' : `Exit ${tab.exit_code ?? tab.status}`})`}
 						>
 							<span
-								class="h-[5px] w-[5px] shrink-0 rounded-full"
-								class:bg-emerald-500={tab.available && tab.status === 'running'}
-								class:bg-red-400={tab.exit_code !== null && tab.exit_code !== 0}
-								class:bg-gray-400={!tab.available || (tab.status !== 'running' && !tab.exit_code)}
+								aria-hidden="true"
+								class="h-[5px] w-[5px] shrink-0 rounded-full border {tab.available &&
+								tab.status === 'running'
+									? 'border-emerald-500 bg-emerald-500'
+									: 'border-gray-400'}"
 							></span>
 							<span class="max-w-28 truncate">{tab.command}</span>
 						</button>
