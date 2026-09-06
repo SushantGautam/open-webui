@@ -148,7 +148,6 @@ RUN --mount=from=ghcr.io/astral-sh/uv:0.12.10,source=/uv,target=/bin/uv \
     set -e; \
     if [ "$USE_SLIM" = "true" ]; then \
     uv pip install --system -r requirements-slim.txt --no-cache-dir; \
-    pip3 uninstall -y uv; \
     elif [ "$USE_CUDA" = "true" ]; then \
     # If you use CUDA the whisper and embedding model will be downloaded on first use
     # fix: pin torch<=2.9.1 - torch 2.10.0 aarch64 wheels cause SIGILL on ARM devices (RPi 4 Cortex-A72) #21349
