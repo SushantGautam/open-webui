@@ -27,6 +27,8 @@ ARG GID=0
 FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
 ARG BUILD_HASH
 ARG USE_SLIM
+ARG UID
+ARG GID
 
 # Set Node.js options (heap limit Allocation failed - JavaScript heap out of memory)
 # ENV NODE_OPTIONS="--max-old-space-size=4096"
@@ -43,6 +45,12 @@ COPY . .
 ENV APP_BUILD_HASH=${BUILD_HASH}
 RUN npm run build && \
     if [ "$USE_SLIM" = "true" ]; then find build -type f -name '*.map' -delete; fi
+
+# Prepare backend ownership before the final copy so static assets occupy one layer.
+# Group 0 write access lets arbitrary OpenShift UIDs update these assets at startup.
+RUN chown -R $UID:$GID /app/backend && \
+    chgrp -R 0 /app/backend/open_webui/static && \
+    chmod -R g=u /app/backend/open_webui/static
 
 ######## WebUI backend ########
 FROM python:3.11-slim-bookworm AS base
@@ -132,10 +140,12 @@ RUN if [ "$USE_SLIM" = "true" ] && { [ "$USE_CUDA" = "true" ] || [ "$USE_OLLAMA"
 # Keep the slim runtime free of local document/audio processing tools.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    git curl jq ca-certificates zstd \
+    git curl jq ca-certificates \
     && if [ "$USE_SLIM" != "true" ]; then \
     apt-get install -y --no-install-recommends \
     build-essential pandoc gcc libmariadb-dev ffmpeg libsm6 libxext6; \
+    fi && if [ "$USE_OLLAMA" = "true" ]; then \
+    apt-get install -y --no-install-recommends zstd; \
     fi && rm -rf /var/lib/apt/lists/*
 
 # install python dependencies
@@ -193,19 +203,8 @@ COPY --chown=$UID:$GID --from=build /app/build /app/build
 COPY --chown=$UID:$GID --from=build /app/CHANGELOG.md /app/CHANGELOG.md
 COPY --chown=$UID:$GID --from=build /app/package.json /app/package.json
 
-# copy backend files
-COPY --chown=$UID:$GID ./backend .
-
-# The backend rewrites its bundled static assets (favicons, splash, manifest,
-# loader.js, ...) under open_webui/static at startup. Make that directory
-# writable by an arbitrary UID -- which under OpenShift's restricted SCC is
-# always a member of GID 0 -- so those writes don't fail with EACCES and crash
-# the boot log with "[Errno 13] Permission denied". `chmod -R g=u` mirrors the
-# owner bits onto the group (the Red Hat arbitrary-UID idiom). This is applied
-# unconditionally because it targets a directory the app writes on every start;
-# the broader, opt-in USE_PERMISSION_HARDENING below covers the rest of /app.
-RUN chgrp -R 0 /app/backend/open_webui/static && \
-    chmod -R g=u /app/backend/open_webui/static
+# copy backend files with the ownership and static permissions prepared above
+COPY --from=build /app/backend .
 
 EXPOSE 8080
 
