@@ -1569,6 +1569,20 @@ async def generate_chat_completion(
 
     is_responses = api_config.get('api_type') == 'responses'
 
+    # Explicit continuation keeps llama.cpp from echoing the prefill in streamed replies.
+    if (
+        api_config.get('provider') == 'llama.cpp'
+        # These flags apply to Chat Completions, not the Responses API.
+        and not is_responses
+        # The frontend sends this ID when the user clicks Continue.
+        and (metadata or {}).get('assistant_message_id')
+        # Tool follow-ups retain the metadata but must start a new assistant turn.
+        and payload.get('messages')
+        and payload['messages'][-1].get('role') == 'assistant'
+    ):
+        payload['continue_final_message'] = True
+        payload['add_generation_prompt'] = False
+
     if api_config.get('azure') or api_config.get('provider') == 'azure':
         # Only set api-key header if not using Azure Entra ID authentication
         auth_type = api_config.get('auth_type', 'bearer')
