@@ -44,6 +44,21 @@ Images (per ref, per arch amd64/arm64):
   `webui_subpath=/chat` dispatch on `main`).
 - Variants: `-cuda`, `-cuda126`, `-ollama`, `-slim` suffixes as upstream.
 
+### CI notes (fork-specific)
+
+- `release-pypi.yml` is **manual-only** (`workflow_dispatch`): PyPI trusted
+  publishing is registered to the upstream repo, so auto-publishing from this
+  fork fails with `invalid-publisher`. Never re-add push triggers.
+- **ghcr.io pushes need a user-level token**: a fork's `GITHUB_TOKEN` cannot
+  push to ghcr.io packages at all (`permission_denied: read_package`, even
+  with `packages: write`). `docker.yaml` falls back to the `GHCR_TOKEN` repo
+  secret (a PAT with `write:packages`) when it is set. Without it, docker
+  image publishing is manual: build locally and `docker push` (as done for
+  `v0.11.4-arm64` / `v0.11.4-subpath` on 2026-10-04).
+- `docker.yaml` concurrency groups are per-ref (`docker-${{ github.ref }}`):
+  a push to `main` cancels in-progress `main` docker runs; a tag dispatch
+  (e.g. `v0.11.4`) runs in its own group and survives.
+
 ### Local
 
 ```bash
@@ -85,9 +100,19 @@ the full agent prompt + evidence bar):
 ```
 
 Measured drift v0.9.6 → v0.11.4: 33/121 files clean, 88 with conflicts.
-Ported on 2026-10-04 as commit `42ac2ae70` (E2E-verified). Treat a bump as
-a **porting task**, not a re-apply. Do not promote a version until the
+Ported on 2026-10-04 (merge commit `42ac2ae70`; final `main` head
+`8a71dc87d` = port + ruff format + i18n catalogs + prettier + CI fixes) —
+E2E-verified in a real browser under `/chat/`. Treat a bump as a
+**porting task**, not a re-apply. Do not promote a version until the
 smoke bar passes.
+
+Upgrade recipe for the agent:
+
+```
+base=$(git rev-parse v0.11.4)          # pristine upstream, tag on this fork
+git diff $base..main > /tmp/subpath-latest.patch   # the deliverable patch
+# after merging a new upstream: regenerate + `git apply --check` on pristine
+```
 
 ## License
 

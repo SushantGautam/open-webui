@@ -1,10 +1,10 @@
 name: Release to PyPI
 
 on:
-  push:
-    branches:
-      - main # or whatever branch you want to use
-      - pypi-release
+  # Manual-only for this fork: PyPI trusted publishing is registered to the
+  # upstream repository, so automatic publishing from the fork always fails
+  # (invalid-publisher). Run manually only when publishing a fork release.
+  workflow_dispatch:
 
 jobs:
   release:
