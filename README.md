@@ -18,7 +18,7 @@
 > **`WEBUI_SUBPATH`** so you can serve it under a **URL prefix** (e.g. `/chat`)
 > behind a reverse proxy — e.g. `https://studio.example.com/chat/`. It is
 > upstream **v0.11.4** plus a small downstream patch (upstream declined the
-> feature in open-webui/open-webui#10440 and #23242; otherwise everything is
+> feature in open-webui/open-webui#10440 and open-webui/open-webui#23242; otherwise everything is
 > stock upstream).
 >
 > You can use it exactly like the official release — **Docker, pip, or uv**:
