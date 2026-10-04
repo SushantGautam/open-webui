@@ -1576,7 +1576,10 @@
 		}
 
 		const pageSubscribe = page.subscribe(async (p) => {
-			if (p.url.pathname === '/' || p.url.pathname.startsWith('/folders/')) {
+			// Route match is base-prefixed: under WEBUI_SUBPATH the root is e.g.
+			// "/chat/", and a missed match here silently skips initNewChat()
+			// (dropping ?model=/&models=/&temporary-chat=).
+			if (p.url.pathname === `${base}/` || p.url.pathname.startsWith(`${base}/folders/`)) {
 				await tick();
 				initNewChat();
 			}
