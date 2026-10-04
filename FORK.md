@@ -77,6 +77,30 @@ all public URLs including the prefix; engine.io matches the raw path):
 
 Reference: SimpleAudit Studio `deploy/openwebui-subpath/Caddyfile.subpath`.
 
+## Branches / publish refs
+
+- `main` — v0.11.4 + subpath feature + CI housekeeping (default branch;
+  GitHub validates dispatch inputs against it).
+- `dev` — pristine upstream (kept clean on purpose).
+- `v0.11.4` (BRANCH) — pristine v0.11.4 code + CI plumbing ONLY
+  (`docker.yaml` subpath input + `GHCR_TOKEN` login, manual-only PyPI,
+  this file). This is what the plain-tag docker build checks out.
+- `v0.11.4` (TAG) — points at pristine upstream `8bd8b4fac`.
+- `publish-v114` — same commit as branch `v0.11.4` (rebuildable copy).
+
+Recipe for a new upstream version:
+
+```
+git checkout -b publish-vNEW <pristine-sha>
+git checkout <main-tip> -- .github/workflows/docker.yaml \
+                      .github/workflows/release-pypi.yml FORK.md
+git commit -am "ci: subpath-aware docker.yaml + fork infra (pristine base)"
+git push fork publish-vNEW
+git push fork publish-vNEW:refs/heads/vNEW     # buildable branch
+git push -f fork vNEW                          # tag = pristine sha
+gh workflow run docker.yaml -r vNEW            # plain multi-arch build
+```
+
 ## Upgrading to a new upstream version
 
 Base: upstream v0.11.4 (`8bd8b4fac`); `main` carries the subpath feature on
@@ -109,9 +133,11 @@ smoke bar passes.
 Upgrade recipe for the agent:
 
 ```
+git fetch fork
 base=$(git rev-parse v0.11.4)          # pristine upstream, tag on this fork
-git diff $base..main > /tmp/subpath-latest.patch   # the deliverable patch
-# after merging a new upstream: regenerate + `git apply --check` on pristine
+# Consumer patch = functional files only (.github/ + FORK.md are fork infra):
+git diff $base..fork/main -- ':!.github' ':!FORK.md' > /tmp/subpath-latest.patch
+# then `git apply --check` it against a pristine upstream clone
 ```
 
 ## License
