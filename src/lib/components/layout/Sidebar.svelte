@@ -192,9 +192,17 @@
 		const items = {
 			notes: { label: $i18n.t('Notes'), href: `${base}/notes`, iconType: 'note' },
 			workspace: { label: $i18n.t('Workspace'), href: `${base}/workspace`, iconType: 'workspace' },
-			automations: { label: $i18n.t('Automations'), href: `${base}/automations`, iconType: 'automations' },
+			automations: {
+				label: $i18n.t('Automations'),
+				href: `${base}/automations`,
+				iconType: 'automations'
+			},
 			calendar: { label: $i18n.t('Calendar'), href: `${base}/calendar`, iconType: 'calendar' },
-			playground: { label: $i18n.t('Playground'), href: `${base}/playground`, iconType: 'playground' }
+			playground: {
+				label: $i18n.t('Playground'),
+				href: `${base}/playground`,
+				iconType: 'playground'
+			}
 		};
 		return items[id];
 	};

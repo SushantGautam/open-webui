@@ -30,13 +30,15 @@ A `/chat` image cannot be served at `/helpdesk` without rebuilding.
 
 Workflow `Create and publish Docker images with specific build args`
 (`.github/workflows/docker.yaml`):
+
 - auto-runs on `main` pushes and `v*` tags
 - manual trigger: **Actions → workflow → Run workflow** with
   `webui_subpath = /chat`
 
 Images (per ref, per arch amd64/arm64):
-- `ghcr.io/sushantgautam/open-webui:<tag>`            (root; auto)
-- `ghcr.io/sushantgautam/open-webui:<tag>-subpath`    (manual, subpath baked)
+
+- `ghcr.io/sushantgautam/open-webui:<tag>` (root; auto)
+- `ghcr.io/sushantgautam/open-webui:<tag>-subpath` (manual, subpath baked)
   e.g. `ghcr.io/sushantgautam/open-webui:v0.11.4-subpath`
 - Branch/tag names become tags too, e.g. `main-subpath` (from a
   `webui_subpath=/chat` dispatch on `main`).

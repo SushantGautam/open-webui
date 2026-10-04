@@ -40,9 +40,11 @@
 		loadWorkspaceCounts();
 	}
 
-	$: activeWorkspaceSection = ($page.url.pathname.startsWith(base)
-		? $page.url.pathname.slice(base.length)
-		: $page.url.pathname).split('/')[2] ?? '';
+	$: activeWorkspaceSection =
+		($page.url.pathname.startsWith(base)
+			? $page.url.pathname.slice(base.length)
+			: $page.url.pathname
+		).split('/')[2] ?? '';
 	$: visibleActions = $workspaceActions.filter((action) => action.visible ?? true);
 
 	const getCount = (res: any) => res?.total ?? (Array.isArray(res) ? res.length : null);
