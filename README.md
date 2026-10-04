@@ -10,6 +10,41 @@
 [![Discord](https://img.shields.io/badge/Discord-Open_WebUI-blue?logo=discord&logoColor=white)](https://discord.gg/5rJgQTnV4s)
 [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/open-webui)
 
+> [!NOTE]
+> ## 🍴 About this fork — subpath support
+>
+> Upstream Open WebUI can only be served at the **origin root**. This fork adds
+> **`WEBUI_SUBPATH`** so you can serve it under a **URL prefix** (e.g. `/chat`)
+> behind a reverse proxy — e.g. `https://studio.example.com/chat/`. It is
+> upstream **v0.11.4** plus a small downstream patch (upstream declined the
+> feature in open-webui/open-webui#10440 and #23242; otherwise everything is
+> stock upstream).
+>
+> You can use it exactly like the official release — **Docker, pip, or uv**:
+>
+> - **Docker (recommended)** — multi-arch image with the subpath baked in at
+>   build time:
+>
+>   ```bash
+>   docker pull ghcr.io/sushantgautam/open-webui:v0.11.4-subpath
+>   ```
+>
+> - **pip / uv** — pre-built wheel from the
+>   [`v0.11.4-subpath` GitHub Release](https://github.com/SushantGautam/open-webui/releases/tag/v0.11.4-subpath):
+>
+>   ```bash
+>   pip install https://github.com/SushantGautam/open-webui/releases/download/v0.11.4-subpath/open_webui-0.11.4-py3-none-any.whl
+>   # or: uv pip install <same wheel URL>
+>   WEBUI_SUBPATH=/chat open-webui serve
+>   ```
+>
+> The subpath is **baked in at build time** — one image/wheel serves one
+> subpath. Serve behind a proxy that forwards the prefix **without stripping**
+> (e.g. `/chat/* → open-webui:8080`).
+>
+> 📖 **Full details: [FORK.md](FORK.md)** — what the patch changes, tag naming,
+> publishing, proxy setup, and the upgrade recipe.
+
 Open WebUI is **a home for AI**, a self-hosted AI platform that's **[extensible](https://docs.openwebui.com/features/extensibility/plugin/)**, **[feature-rich](https://docs.openwebui.com/features/)**, user-friendly, and built to run **[entirely offline](https://openwebui.com/sovereign-ai)**. With support for **Ollama** and **OpenAI-compatible APIs**, it gives you a powerful, provider-agnostic interface for both local and cloud-based models.
 
 Passionate about open-source AI? [Join our team →](https://careers.openwebui.com/)
