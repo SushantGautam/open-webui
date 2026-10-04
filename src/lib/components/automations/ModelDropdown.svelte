@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { getContext } from 'svelte';
 
 	import { models } from '$lib/stores';
@@ -108,7 +109,7 @@
 							class="rounded-full size-5 items-center mr-2"
 							loading="lazy"
 							on:error={(e) => {
-								e.currentTarget.src = '/favicon.png';
+								e.currentTarget.src = `${base}/static/favicon.png`;
 							}}
 						/>
 						<div class="truncate">

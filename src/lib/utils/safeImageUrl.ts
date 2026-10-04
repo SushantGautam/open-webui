@@ -20,11 +20,14 @@ export function safeImageUrl(url: string): string {
 		return `${WEBUI_BASE_URL}${PLACEHOLDER_IMAGE}`;
 	}
 
+	if (url.startsWith('/')) {
+		return url.startsWith(`${WEBUI_BASE_URL}/`) ? url : `${WEBUI_BASE_URL}${url}`;
+	}
+
 	if (
-		url.startsWith(WEBUI_BASE_URL) ||
+		(WEBUI_BASE_URL !== '' && (url === WEBUI_BASE_URL || url.startsWith(`${WEBUI_BASE_URL}/`))) ||
 		url.startsWith('https://www.gravatar.com/avatar/') ||
-		url.startsWith('data:') ||
-		url.startsWith('/')
+		url.startsWith('data:')
 	) {
 		return url;
 	}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { getContext, createEventDispatcher, onMount } from 'svelte';
 	const i18n = getContext('i18n');
 
@@ -121,8 +122,8 @@
 			toast.success($i18n.t('Channel deleted successfully'));
 			onUpdate();
 
-			if ($page.url.pathname === `/channels/${channelId}`) {
-				goto('/');
+			if ($page.url.pathname === `${base}/channels/${channelId}`) {
+				goto(`${base}/`);
 			}
 		}
 

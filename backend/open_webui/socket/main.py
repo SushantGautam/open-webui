@@ -29,6 +29,7 @@ from open_webui.env import (
     WEBSOCKET_SERVER_LOGGING,
     WEBSOCKET_SERVER_PING_INTERVAL,
     WEBSOCKET_SERVER_PING_TIMEOUT,
+    WEBUI_SUBPATH,
 )
 from open_webui.models.access_grants import AccessGrants
 from open_webui.models.channels import Channels
@@ -231,9 +232,14 @@ async def periodic_usage_pool_cleanup():
         release_func()
 
 
+# engineio's ASGIApp matches the *full* request path (it does not subtract the
+# ASGI root_path), so under a reverse-proxy subpath the browser hits
+# `${WEBUI_SUBPATH}/ws/socket.io` and the handshake would otherwise 404 into a
+# websocket-scope `not_found`. Prefix socketio_path with WEBUI_SUBPATH so it
+# stays aligned with the frontend client (`path: ${base}/ws/socket.io`).
 app = socketio.ASGIApp(
     sio,
-    socketio_path='/ws/socket.io',
+    socketio_path=f'{WEBUI_SUBPATH}/ws/socket.io',
 )
 
 

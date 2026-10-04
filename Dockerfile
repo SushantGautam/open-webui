@@ -26,6 +26,7 @@ ARG GID=0
 ######## WebUI frontend ########
 FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
 ARG BUILD_HASH
+ARG WEBUI_SUBPATH=""
 
 # Set Node.js options (heap limit Allocation failed - JavaScript heap out of memory)
 # ENV NODE_OPTIONS="--max-old-space-size=4096"
@@ -40,6 +41,7 @@ RUN npm ci --force
 
 COPY . .
 ENV APP_BUILD_HASH=${BUILD_HASH}
+ENV WEBUI_SUBPATH=${WEBUI_SUBPATH}
 RUN npm run build
 
 ######## WebUI backend ########
@@ -204,5 +206,10 @@ USER $UID:$GID
 ARG BUILD_HASH
 ENV WEBUI_BUILD_VERSION=${BUILD_HASH}
 ENV DOCKER=true
+
+# Default the backend runtime subpath to match the value the frontend was built
+# with. Can still be overridden at runtime with `-e WEBUI_SUBPATH=...`.
+ARG WEBUI_SUBPATH=""
+ENV WEBUI_SUBPATH=${WEBUI_SUBPATH}
 
 CMD [ "bash", "start.sh"]

@@ -3,6 +3,11 @@ import * as child_process from 'node:child_process';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import fs from 'node:fs';
 
+// Optional URL subpath prefix for reverse-proxy deployments (e.g. "/openwebui").
+// Must start with a leading slash and must not end with a trailing slash.
+// Leave empty to serve at the root path.
+const WEBUI_BASE_PATH = process.env.WEBUI_SUBPATH || '';
+
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	// Consult https://kit.svelte.dev/docs/integrations#preprocessors
@@ -17,6 +22,16 @@ const config = {
 			assets: 'build',
 			fallback: 'index.html'
 		}),
+		paths: {
+			base: WEBUI_BASE_PATH,
+			// Bake absolute, base-prefixed asset URLs instead of runtime-relative ones.
+			// With the default (relative: true) SvelteKit derives `base` from the
+			// document URL and emits relative `%sveltekit.assets%` paths, so static
+			// refs in app.html (e.g. /static/favicon.png) and nested-route asset loads
+			// drop the subpath. A fixed reverse-proxy subpath is always served from
+			// `base`, so absolute paths are correct and route-independent.
+			relative: false
+		},
 		// poll for new version name every 60 seconds (to trigger reload mechanic in +layout.svelte)
 		version: {
 			name: (() => {

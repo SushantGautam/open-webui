@@ -21,7 +21,8 @@ type CellState = {
 const initializePyodide = async () => {
 	// Ensure Pyodide is loaded once and cached in the worker's global scope
 	if (!self.pyodide) {
-		self.indexURL = '/pyodide/';
+		// Base-prefixed (Vite injects BASE_URL) so Pyodide loads under a subpath deploy.
+		self.indexURL = `${import.meta.env.BASE_URL}pyodide/`;
 		self.stdout = '';
 		self.stderr = '';
 		self.cells = {};

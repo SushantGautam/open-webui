@@ -78,7 +78,11 @@
 				const session = await res.json();
 				sessionId = session.id;
 
-				const wsBase = base.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
+				// Absolute ws(s):// — convert an http(s) base, or build from the current
+				// origin when base is root-relative (production / reverse-proxy subpath).
+				const wsBase = /^https?:/.test(base)
+					? base.replace(/^http/, 'ws')
+					: `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}${base}`;
 				wsUrl = `${wsBase}/api/terminals/${sessionId}`;
 			} else {
 				// System terminal — proxy through Open WebUI backend
@@ -96,7 +100,11 @@
 				const session = await res.json();
 				sessionId = session.id;
 
-				const wsBase = base.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
+				// Absolute ws(s):// — convert an http(s) base, or build from the current
+				// origin when base is root-relative (production / reverse-proxy subpath).
+				const wsBase = /^https?:/.test(base)
+					? base.replace(/^http/, 'ws')
+					: `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}${base}`;
 				wsUrl = `${wsBase}/terminals/${info.serverId}/api/terminals/${sessionId}`;
 			}
 
