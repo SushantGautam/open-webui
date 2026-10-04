@@ -6,7 +6,7 @@ proxy, instead of only at the origin root. Used by SimpleAudit Studio to
 embed chat at `https://studio.example.com/chat/`.
 
 Upstream rejected subpath support as a feature (open-webui/open-webui#10440,
-#23242) — maintain a small downstream patch instead, per the maintainers'
+open-webui/open-webui#23242) — maintain a small downstream patch instead, per the maintainers'
 suggestion.
 
 ## What the subpath commits change (121 files)
