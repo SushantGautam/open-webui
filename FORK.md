@@ -37,7 +37,9 @@ Workflow `Create and publish Docker images with specific build args`
 Images (per ref, per arch amd64/arm64):
 - `ghcr.io/sushantgautam/open-webui:<tag>`            (root; auto)
 - `ghcr.io/sushantgautam/open-webui:<tag>-subpath`    (manual, subpath baked)
-  e.g. `ghcr.io/sushantgautam/open-webui:v0.9.6-subpath`
+  e.g. `ghcr.io/sushantgautam/open-webui:v0.11.4-subpath`
+- Branch/tag names become tags too, e.g. `main-subpath` (from a
+  `webui_subpath=/chat` dispatch on `main`).
 - Variants: `-cuda`, `-cuda126`, `-ollama`, `-slim` suffixes as upstream.
 
 ### Local
@@ -60,7 +62,9 @@ Reference: SimpleAudit Studio `deploy/openwebui-subpath/Caddyfile.subpath`.
 
 ## Upgrading to a new upstream version
 
-Base pinned: upstream `02dc3e689` (v0.9.6 generation, "Merge PR #25590").
+Base: upstream v0.11.4 (`8bd8b4fac`); `main` carries the subpath feature on
+top as plain commits, `dev` mirrors pristine upstream (kept clean on purpose
+so `main` can always be re-aligned with `dev`).
 
 Procedure (see SimpleAudit Studio `deploy/openwebui-subpath/UPGRADE.md` for
 the full agent prompt + evidence bar):
@@ -68,16 +72,20 @@ the full agent prompt + evidence bar):
 ```
 1. git remote add upstream https://github.com/open-webui/open-webui
 2. git fetch upstream <new-tag>
-3. git rebase upstream/<new-tag>          # replay the 2 subpath commits
-4. WEBUI_SUBPATH=/chat npm run build      # frontend compiles?
-5. docker build + smoke: /chat/health, 0 unprefixed SPA refs,
-   WS /chat/ws/socket.io → 101, one LLM round-trip
-6. git tag v<new>-subpath  (CI publishes)
+3. MERGE (not rebase) the subpath work onto upstream/<new-tag> —
+   git-apply of the old patch aborts on files upstream deleted
+4. resolve conflicts merge-both: keep new upstream code AND keep the
+   subpath ${base} prefixes / WEBUI_SUBPATH wiring (see UPGRADE.md list)
+5. docker build --build-arg WEBUI_SUBPATH=/chat + smoke:
+   /chat/health, 0 unprefixed SPA refs, WS /chat/ws/socket.io → 101,
+   one real LLM round-trip in the UI
+6. push main + dispatch docker.yaml with webui_subpath=/chat
 ```
 
-Measured drift at v0.11.4: 33/121 files clean, 88 with conflicts (8 of the
-9 core files). Treat a bump as a **porting task**, not a re-apply. Do not
-promote a version until the smoke bar passes.
+Measured drift v0.9.6 → v0.11.4: 33/121 files clean, 88 with conflicts.
+Ported on 2026-10-04 as commit `42ac2ae70` (E2E-verified). Treat a bump as
+a **porting task**, not a re-apply. Do not promote a version until the
+smoke bar passes.
 
 ## License
 
