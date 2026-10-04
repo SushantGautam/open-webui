@@ -102,8 +102,21 @@ git commit -am "ci: subpath-aware docker.yaml + fork infra (pristine base)"
 git push fork publish-vNEW
 git push fork publish-vNEW:refs/heads/vNEW     # buildable branch
 git push -f fork vNEW                          # tag = pristine sha
-gh workflow run docker.yaml -r vNEW            # plain multi-arch build
+gh workflow run docker.yaml -r vNEW            # multi-arch build
 ```
+
+Published tag policy:
+
+- The fork publishes the **`v<ver>-subpath` family only**
+  (`v0.11.4-subpath`, `-slim`, `-cuda`, `-cuda126`, `-ollama`; multi-arch,
+  built from `main` with `webui_subpath=/chat`, then aliased from the
+  run's `main*-subpath` merge output with
+  `docker buildx imagetools create`).
+- `docker.yaml` is **dispatch-only** (no push trigger) and auto-`prune`s
+  stale package versions after every publish; `prune_only=true` tidies
+  without building. The untagged "versions" in the GitHub packages UI are
+  the per-arch leaf manifests of the multi-arch indexes — expected, not
+  stale.
 
 ## Upgrading to a new upstream version
 
