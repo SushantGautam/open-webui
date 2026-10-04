@@ -58,6 +58,10 @@ Images (per ref, per arch amd64/arm64):
 - `docker.yaml` concurrency groups are per-ref (`docker-${{ github.ref }}`):
   a push to `main` cancels in-progress `main` docker runs; a tag dispatch
   (e.g. `v0.11.4`) runs in its own group and survives.
+- **Publishing is GHCR-only, always.** The upstream `copy-to-dockerhub` job
+  was REMOVED from `docker.yaml` (no Docker Hub credentials here, and the
+  community Docker Hub images are upstream's to publish). Do not re-add it —
+  the fork publishes exclusively to `ghcr.io/sushantgautam/open-webui`.
 
 ### Local
 
