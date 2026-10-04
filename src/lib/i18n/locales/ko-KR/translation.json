@@ -1462,6 +1462,7 @@
 	"No content to speak": "음성 출력할 내용을 찾을 수 없습니다",
 	"No conversation to save": "저장할 대화가 없습니다",
 	"No data": "데이터가 없습니다",
+	"No data found": "",
 	"No description": "",
 	"No distance available": "거리 불가능",
 	"No event webhooks configured.": "구성된 이벤트 웹훅이 없습니다.",

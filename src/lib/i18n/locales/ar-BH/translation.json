@@ -1526,6 +1526,7 @@
 	"No content to speak": "لا يوجد محتوى لقراءته بصوت مسموع",
 	"No conversation to save": "لا توجد محادثة لحفظها",
 	"No data": "لا توجد بيانات",
+	"No data found": "",
 	"No description": "لا يوجد وصف",
 	"No distance available": "لا تتوفر قيمة للمسافة",
 	"No event webhooks configured.": "لم تُضبط أي خطافات ويب للأحداث.",

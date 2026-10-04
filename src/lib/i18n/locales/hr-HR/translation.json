@@ -1487,6 +1487,7 @@
 	"No content to speak": "Nema sadržaja za čitanje naglas",
 	"No conversation to save": "Nema razgovora za spremanje",
 	"No data": "Nema podataka",
+	"No data found": "",
 	"No description": "Nema opisa",
 	"No distance available": "Nema dostupne vrijednosti udaljenosti",
 	"No event webhooks configured.": "Nisu konfigurirani webhookovi za događaje.",

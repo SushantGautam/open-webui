@@ -1474,6 +1474,7 @@
 	"No content to speak": "Ei puhuttavaa sisältöä",
 	"No conversation to save": "Ei tallennettavaa keskustelua",
 	"No data": "Ei dataa",
+	"No data found": "",
 	"No description": "Ei kuvausta",
 	"No distance available": "Etäisyyttä ei saatavilla",
 	"No event webhooks configured.": "Tapahtuma-webhookeja ei ole määritetty.",

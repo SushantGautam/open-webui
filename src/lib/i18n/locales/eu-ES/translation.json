@@ -1474,6 +1474,7 @@
 	"No content to speak": "Ez dago hitz egiteko edukirik",
 	"No conversation to save": "Ez dago gordetzeko elkarrizketarik",
 	"No data": "Ez dago daturik",
+	"No data found": "",
 	"No description": "Ez dago deskribapenik",
 	"No distance available": "Ez dago distantziarik eskuragarri",
 	"No event webhooks configured.": "Ez dago gertaeren webhook-ik konfiguratuta.",
