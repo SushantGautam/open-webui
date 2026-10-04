@@ -383,3 +383,67 @@ jobs:
               event_type: eventType,
               client_payload: payload,
             });
+
+  prune:
+    runs-on: ubuntu-latest
+    needs: [merge]
+    if: ${{ !cancelled() }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      # Deletes package versions whose tags belong to an older publish or
+      # are buildx cache manifests, so the ghcr.io package (and the GitHub
+      # packages UI) never accumulates stale entries. Keeps: this run's tags
+      # (git-<sha>[-variant][-subpath]) and pinned v* release tags (the
+      # v0.11.4-subpath family).
+      - name: Prune stale package versions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${IMAGE_REPOSITORY}"
+          SHA="${GITHUB_SHA#*g*}"
+          SUBPATH_SUFFIX=""
+          [ -n "${{ inputs.webui_subpath }}" ] && SUBPATH_SUFFIX="-subpath"
+          python3 - "$REPO" "$SHA" "$SUBPATH_SUFFIX" <<'PYEOF'
+          import base64, json, os, re, sys, time, urllib.request, urllib.error
+          repo, sha, sub = sys.argv[1], sys.argv[2], sys.argv[3]
+          token = os.environ["GITHUB_TOKEN"]
+          def api(path, method="GET"):
+              req = urllib.request.Request(f"https://api.github.com{path}", method=method,
+                  headers={"Authorization": f"Bearer {token}",
+                           "Accept": "application/vnd.github+json"})
+              try:
+                  r = urllib.request.urlopen(req); b = r.read()
+                  return r.status, (json.loads(b) if b else None)
+              except urllib.error.HTTPError as e:
+                  return e.code, e.read()[:200].decode()
+          allv, page = [], 1
+          while True:
+              st, data = api(f"/users/{'SushantGautam'}/packages/container/{repo.split('/')[-1]}/versions?per_page=100&page={page}")
+              if not isinstance(data, list) or not data:
+                  break
+              allv.extend(data)
+              if len(data) < 100:
+                  break
+              page += 1
+          keep = re.compile(rf"^{sha}.*")
+          pinned = re.compile(r"^v\d+\..*")
+          def tags_of(v):
+              return set((v.get("metadata", {}).get("container", {}) or {}).get("tags") or [])
+          drop, kept = [], 0
+          for v in allv:
+              ts = tags_of(v)
+              if not ts or any(keep.search(t) or pinned.search(t) for t in ts):
+                  kept += 1
+                  continue
+              drop.append(v["id"])
+          print(f"versions: {len(allv)}, keeping {kept}, deleting {len(drop)}")
+          for vid in drop:
+              st, body = api(f"/users/SushantGautam/packages/container/{repo.split('/')[-1]}/versions/{vid}", method="DELETE")
+              if st not in (200, 202, 204, 404):
+                  print(f"FAIL {vid}: {st} {body}")
+                  raise SystemExit(1)
+              time.sleep(0.3)
+          print("prune complete")
+          PYEOF
