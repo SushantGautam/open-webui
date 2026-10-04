@@ -800,7 +800,10 @@
 													{/if}
 												</div>
 
-												<a href={`${base}/notes/${note.id}`} class="mt-1 flex min-h-0 flex-1 flex-col">
+												<a
+													href={`${base}/notes/${note.id}`}
+													class="mt-1 flex min-h-0 flex-1 flex-col"
+												>
 													<div
 														class="line-clamp-3 text-xs leading-5 text-gray-500 dark:text-gray-500"
 													>
