@@ -98,6 +98,26 @@ git clone https://github.com/sushantgautam/open-webui && cd open-webui
 docker build --build-arg WEBUI_SUBPATH=/chat -t open-webui-subpath:chat .
 ```
 
+### As a Python package (uvx / pip / uv)
+
+The subpath is **baked into the published wheel's frontend**
+(`release-artifacts.yml` builds with `WEBUI_SUBPATH=/chat`), so the pip/uvx
+wheel behaves like the `:subpath` image — serve it with
+`WEBUI_SUBPATH=/chat` at runtime. Wheel:
+[`v0.11.4-subpath` GitHub Release](https://github.com/SushantGautam/open-webui/releases/tag/v0.11.4-subpath).
+
+```bash
+# uvx — one-liner, no env management (quick runs)
+WEBUI_SUBPATH=/chat uvx --from https://github.com/SushantGautam/open-webui/releases/download/v0.11.4-subpath/open_webui-0.11.4-py3-none-any.whl open-webui serve
+
+# pip / uv — install into an env (permanent deployments: data, secrets, models)
+pip install https://github.com/SushantGautam/open-webui/releases/download/v0.11.4-subpath/open_webui-0.11.4-py3-none-any.whl   # or: uv pip install <same>
+WEBUI_SUBPATH=/chat open-webui serve
+```
+
+Docker remains the recommended deployment (systemd-friendly, data volume,
+model management); uvx/pip suit quick runs and custom hosting.
+
 ## Serving behind a proxy
 
 The proxy must forward **without stripping** the prefix (the app generates

@@ -21,7 +21,7 @@
 > feature in open-webui/open-webui#10440 and open-webui/open-webui#23242; otherwise everything is
 > stock upstream).
 >
-> You can use it exactly like the official release — **Docker, pip, or uv**:
+> You can use it exactly like the official release — **Docker, uvx, pip, or uv**:
 >
 > - **Docker (recommended)** — multi-arch image with the subpath baked in at
 >   build time:
@@ -30,8 +30,19 @@
 >   docker pull ghcr.io/sushantgautam/open-webui:v0.11.4-subpath
 >   ```
 >
-> - **pip / uv** — pre-built wheel from the
->   [`v0.11.4-subpath` GitHub Release](https://github.com/SushantGautam/open-webui/releases/tag/v0.11.4-subpath):
+> - **uvx** — fastest one-liner; [`uvx`](https://docs.astral.sh/uv/) fetches
+>   the pre-built wheel from the
+>   [`v0.11.4-subpath` GitHub Release](https://github.com/SushantGautam/open-webui/releases/tag/v0.11.4-subpath)
+>   and runs it, no environment to manage:
+>
+>   ```bash
+>   WEBUI_SUBPATH=/chat uvx --from https://github.com/SushantGautam/open-webui/releases/download/v0.11.4-subpath/open_webui-0.11.4-py3-none-any.whl open-webui serve
+>   ```
+>
+>   Great for a quick run. For a permanent deployment (persistent data,
+>   secrets, models), install into an environment instead:
+>
+> - **pip / uv** — install the same pre-built wheel:
 >
 >   ```bash
 >   pip install https://github.com/SushantGautam/open-webui/releases/download/v0.11.4-subpath/open_webui-0.11.4-py3-none-any.whl
