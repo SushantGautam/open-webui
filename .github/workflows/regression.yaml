@@ -1,35 +1,63 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Tests — run the open-webui/tests unit suite against a release candidate
-# Release pull requests go from dev into main and are titled with the version
+# Manual-only for this fork (see FORK.md): pass the PR number to test.
 # ─────────────────────────────────────────────────────────────────────────────
 name: Tests
 
 on:
-  pull_request:
-    branches: [main, dev]
-    types: [opened, synchronize, reopened, edited]
-
-# An edit must not cancel a running suite: the replacement run would skip it and still report green.
-concurrency:
-  group: regression-${{ github.ref }}
-  cancel-in-progress: ${{ github.event.action != 'edited' }}
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to run the regression suite against'
+        required: true
+        type: string
 
 jobs:
-  # Into main only the release branch counts; into dev any version title does, so the
-  # suite can be exercised outside a release. Expressions have no regex, hence the literal prefixes.
+  # Manual dispatch has no github.event.pull_request, so resolve the PR by
+  # number and compute the upstream "required" gate: the suite runs when the
+  # PR is against dev (or from dev) and its title starts with a version.
+  resolve:
+    name: Resolve PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      required: ${{ steps.pr.outputs.required }}
+      sha: ${{ steps.pr.outputs.sha }}
+    steps:
+      - name: Look up PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          json=$(gh pr view "${PR_NUMBER}" --json baseRefName,headRefName,headRefOid,title)
+          base=$(jq -r .baseRefName <<<"$json")
+          head=$(jq -r .headRefName <<<"$json")
+          sha=$(jq -r .headRefOid <<<"$json")
+          title=$(jq -r .title <<<"$json")
+          case "${title}" in
+            0.* | 1.*) versioned=yes ;;
+            *) versioned=no ;;
+          esac
+          if { [ "${base}" = "dev" ] || [ "${head}" = "dev" ]; } && [ "${versioned}" = "yes" ]; then
+            required=true
+          else
+            required=false
+          fi
+          echo "required=${required}" >> "${GITHUB_OUTPUT}"
+          echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
+
   regression:
     name: Suite
-    if: >-
-      (github.event.pull_request.base.ref == 'dev' ||
-      github.event.pull_request.head.ref == 'dev') &&
-      (github.event.action != 'edited' || github.event.changes.title != null) &&
-      (startsWith(github.event.pull_request.title, '0.') ||
-      startsWith(github.event.pull_request.title, '1.'))
+    if: needs.resolve.outputs.required == 'true'
+    needs: [resolve]
     permissions:
       contents: read
     uses: open-webui/tests/.github/workflows/regression.yml@main
     with:
-      open-webui-ref: ${{ github.event.pull_request.head.sha }}
+      open-webui-ref: ${{ needs.resolve.outputs.sha }}
 
   # Single check to require in branch protection.
   result:

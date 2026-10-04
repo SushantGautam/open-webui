@@ -1,12 +1,17 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Release — Create GitHub release from CHANGELOG, trigger Docker builds
-# Runs on pushes to main when package.json version changes
+# Manual-only for this fork (see FORK.md): pass the branch/tag to release
+# (e.g. v0.11.5); its package.json version becomes the release tag.
 # ─────────────────────────────────────────────────────────────────────────────
 name: Release
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch/tag to release (e.g. v0.11.5). Its package.json version becomes the release tag.'
+        required: true
+        type: string
 
 concurrency:
   group: release-${{ github.ref }}
@@ -22,14 +27,12 @@ jobs:
       actions: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
 
-      - name: Abort if package.json unchanged
-        run: |
-          git diff --cached --diff-filter=d package.json || {
-            echo "package.json not modified — skipping release"
-            exit 1
-          }
-
+      # Manual dispatch is an explicit release intent, so the upstream
+      # "abort if package.json unchanged on push" gate is dropped; the
+      # "release already exists — skipping" check below keeps it idempotent.
       - name: Read version
         id: pkg
         run: echo "version=$(jq -r '.version' package.json)" >> $GITHUB_OUTPUT

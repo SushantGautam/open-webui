@@ -4,13 +4,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
 name: Python CI
 
+# Manual-only for this fork: upstream's push/PR triggers are removed (see
+# FORK.md - all CI is run on demand via the Actions tab).
 on:
-  push:
-    branches: [main, dev]
-    paths: ['backend/**', 'pyproject.toml', 'uv.lock', '.github/workflows/backend.yaml']
-  pull_request:
-    branches: [main, dev]
-    paths: ['backend/**', 'pyproject.toml', 'uv.lock', '.github/workflows/backend.yaml']
+  workflow_dispatch:
 
 concurrency:
   group: backend-${{ github.ref }}
