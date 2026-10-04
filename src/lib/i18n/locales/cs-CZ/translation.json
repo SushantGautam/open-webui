@@ -1500,6 +1500,7 @@
 	"No content to speak": "Žádný obsah k přečtení.",
 	"No conversation to save": "Žádná konverzace k uložení",
 	"No data": "Žádná data",
+	"No data found": "",
 	"No description": "Bez popisu",
 	"No distance available": "Vzdálenost není k dispozici",
 	"No event webhooks configured.": "Nejsou nastaveny žádné webhooky pro události.",

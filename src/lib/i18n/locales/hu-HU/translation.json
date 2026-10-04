@@ -1474,6 +1474,7 @@
 	"No content to speak": "Nincs felolvasható tartalom",
 	"No conversation to save": "Nincs menthető beszélgetés",
 	"No data": "Nincs adat",
+	"No data found": "",
 	"No description": "Nincs leírás",
 	"No distance available": "Nincs elérhető távolság",
 	"No event webhooks configured.": "Nincsenek beállítva esemény-webhookok.",

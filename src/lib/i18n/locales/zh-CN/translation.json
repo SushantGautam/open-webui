@@ -1471,6 +1471,7 @@
 	"No content to speak": "没有内容可朗读",
 	"No conversation to save": "没有可保存的对话",
 	"No data": "暂无数据",
+	"No data found": "",
 	"No description": "无描述",
 	"No distance available": "没有可用距离",
 	"No event webhooks configured.": "未配置事件 webhook。",

@@ -1474,6 +1474,7 @@
 	"No content to speak": "Konuşacak içerik yok",
 	"No conversation to save": "Kaydedilecek sohbet yok",
 	"No data": "Veri yok",
+	"No data found": "",
 	"No description": "Açıklama yok",
 	"No distance available": "Mesafe mevcut değil",
 	"No event webhooks configured.": "Yapılandırılmış olay webhook'u yok.",

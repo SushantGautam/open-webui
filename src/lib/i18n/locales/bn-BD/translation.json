@@ -1474,6 +1474,7 @@
 	"No content to speak": "পড়ে শোনানোর মতো কোনো বিষয়বস্তু নেই",
 	"No conversation to save": "সংরক্ষণ করার মতো কোনো কথোপকথন নেই",
 	"No data": "কোনো তথ্য নেই",
+	"No data found": "",
 	"No description": "কোনো বিবরণ নেই",
 	"No distance available": "দূরত্বের কোনো মান উপলভ্য নেই",
 	"No event webhooks configured.": "কোনো ইভেন্ট ওয়েবহুক কনফিগার করা নেই।",

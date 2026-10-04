@@ -1487,6 +1487,7 @@
 	"No content to speak": "No hi ha contingut per parlar",
 	"No conversation to save": "No hi ha cap conversa a desar",
 	"No data": "No hi ha dades",
+	"No data found": "",
 	"No description": "Sense descripció",
 	"No distance available": "No hi ha distància disponible",
 	"No event webhooks configured.": "No s'ha configurat cap webhook d'esdeveniments.",
