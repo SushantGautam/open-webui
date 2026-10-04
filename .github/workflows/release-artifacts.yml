@@ -5,18 +5,9 @@ on:
   # Release (persistent assets). Never publishes to PyPI - trusted
   # publishing is registered to the upstream repository, so publishing
   # from this fork would always fail with invalid-publisher (see FORK.md).
+  # Only the `-subpath` variant is published here (tag v<version>-subpath);
+  # plain/root builds live in the official open-webui repo.
   workflow_dispatch:
-    inputs:
-      webui_subpath:
-        description: 'URL subpath to bake into the wheel frontend (e.g. /chat). Leave empty for root.'
-        required: false
-        default: '/chat'
-        type: string
-      tag_suffix:
-        description: 'Release tag suffix for subpath builds (default -subpath). Ignored when webui_subpath is empty (root build → plain v<version>).'
-        required: false
-        default: '-subpath'
-        type: string
 
 jobs:
   release:
@@ -32,24 +23,11 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: 3.11
-      - name: Validate WEBUI_SUBPATH
-        env:
-          WEBUI_SUBPATH_INPUT: ${{ inputs.webui_subpath }}
-        run: |
-          sub="${WEBUI_SUBPATH_INPUT}"
-          if [ -n "$sub" ]; then
-            case "$sub" in
-              /*) ;;
-              *) echo "::error::WEBUI_SUBPATH must start with '/' (got '$sub'); leave empty to serve at root."; exit 1 ;;
-            esac
-            case "$sub" in
-              */) echo "::error::WEBUI_SUBPATH must not end with a trailing '/' (got '$sub'); use e.g. /chat."; exit 1 ;;
-            esac
-          fi
-          echo "WEBUI_SUBPATH validated as '${sub:-<root>}'"
       - name: Build
         env:
-          WEBUI_SUBPATH: ${{ inputs.webui_subpath }}
+          # Baked into the wheel frontend at build time, same as the
+          # Dockerfile (svelte/vite read process.env.WEBUI_SUBPATH).
+          WEBUI_SUBPATH: /chat
         run: |
           python -m pip install --upgrade pip
           pip install build
@@ -57,28 +35,9 @@ jobs:
       - name: Publish to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SUBPATH: ${{ inputs.webui_subpath }}
-          SUFFIX: ${{ inputs.tag_suffix }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          # Mirror the GHCR naming (docker.yaml): a root build (empty
-          # subpath) gets the plain v<version> tag; a subpath build gets
-          # v<version><suffix> (default -subpath), i.e. v0.11.4-subpath.
-          if [ -n "${SUBPATH}" ]; then
-            case "${SUFFIX}" in
-              '' | -*) : ;;
-              *) echo "::error::tag_suffix must be empty or start with '-' (got '${SUFFIX}')"; exit 1 ;;
-            esac
-            [ -z "${SUFFIX}" ] && SUFFIX="-subpath"
-          else
-            SUFFIX=""
-          fi
-          TAG="v${VERSION}${SUFFIX}"
-          if [ -n "${SUBPATH}" ]; then
-            NOTES="Pre-built wheel + sdist for open-webui ${VERSION} (sushantgautam fork). Frontend built with WEBUI_SUBPATH=${SUBPATH} (subpath is baked in at build time) - serve with WEBUI_SUBPATH=${SUBPATH} at runtime too."
-          else
-            NOTES="Pre-built wheel + sdist for open-webui ${VERSION} (sushantgautam fork), served at root."
-          fi
+          TAG="v${VERSION}-subpath"
           # gh release create reuses an existing tag (or creates it on the
           # default branch); never moves one - matches the FORK.md tag policy
           # (e.g. the pinned v0.11.4 tag stays on pristine upstream).
@@ -87,6 +46,6 @@ jobs:
           else
             gh release create "${TAG}" \
               --title "Open WebUI ${TAG}" \
-              --notes "${NOTES}" \
+              --notes "Pre-built wheel + sdist for open-webui ${VERSION} (sushantgautam fork). Frontend built with WEBUI_SUBPATH=/chat (subpath is baked in at build time) - serve with WEBUI_SUBPATH=/chat at runtime too." \
               dist/*
           fi
