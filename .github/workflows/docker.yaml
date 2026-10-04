@@ -21,7 +21,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_REPOSITORY: spencercjh/open-webui
+  IMAGE_REPOSITORY: sushantgautam/open-webui
 
 jobs:
   build:
