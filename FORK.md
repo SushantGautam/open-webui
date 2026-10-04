@@ -116,7 +116,9 @@ Published tag policy:
   stale package versions after every publish; `prune_only=true` tidies
   without building. The untagged "versions" in the GitHub packages UI are
   the per-arch leaf manifests of the multi-arch indexes — expected, not
-  stale.
+  stale. **Never delete untagged package versions** (UI or API): they are
+  live constituents of the indexes and deleting them corrupts the indexes
+  (happened 2026-10-04; recovered by rebuild + re-alias).
 
 ## Upgrading to a new upstream version
 
