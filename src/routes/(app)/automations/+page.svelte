@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { onMount, onDestroy, getContext } from 'svelte';
 
 	import dayjs from '$lib/dayjs';
@@ -361,7 +362,7 @@
 			!($config?.features as any)?.enable_automations ||
 			($user?.role !== 'admin' && !($user?.permissions?.features?.automations ?? false))
 		) {
-			goto('/');
+			goto(`${base}/`);
 			return;
 		}
 
@@ -452,7 +453,7 @@
 	on:save={async (e) => {
 		await getAutomationList();
 		if (e.detail?.id) {
-			goto(`/automations/${e.detail.id}`);
+			goto(`${base}/automations/${e.detail.id}`);
 		}
 	}}
 />
@@ -594,12 +595,12 @@
 							aria-label={$i18n.t('Open automation')}
 							class="group flex min-h-8 w-full cursor-pointer items-center gap-2 overflow-hidden rounded-xl px-2 py-1 text-left"
 							on:click={() => {
-								goto(`/automations/${automation.id}`);
+								goto(`${base}/automations/${automation.id}`);
 							}}
 							on:keydown={(e) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									goto(`/automations/${automation.id}`);
+									goto(`${base}/automations/${automation.id}`);
 								}
 							}}
 						>
@@ -665,7 +666,7 @@
 										<AutomationMenu
 											show={openAutomationMenuId === automation.id}
 											editHandler={() => {
-												goto(`/automations/${automation.id}`);
+												goto(`${base}/automations/${automation.id}`);
 											}}
 											cloneHandler={() => {
 												cloneHandler(automation);

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { marked } from 'marked';
 	import Sortable from 'sortablejs';
 	import fileSaver from 'file-saver';
@@ -643,7 +644,7 @@
 			name: `${model.name} (Clone)`
 		});
 		showSettings.set(false);
-		await goto('/workspace/models/create');
+		await goto(`${base}/workspace/models/create`);
 	};
 
 	const exportModelHandler = async (model) => {
@@ -1015,7 +1016,7 @@
 														// LICENSE covers this Open WebUI fallback logo.
 														// Do not alter, remove, obscure, or replace it except as LICENSE permits:
 														// https://docs.openwebui.com/license.
-														e.target.src = '/favicon.png';
+														e.target.src = `${base}/static/favicon.png`;
 													}}
 												/>
 											</div>

@@ -1,4 +1,5 @@
 <script>
+	import { base } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { onMount, getContext } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -59,7 +60,7 @@
 				)
 			);
 
-			await goto('/admin/functions');
+			await goto(`${base}/admin/functions`);
 		}
 	};
 

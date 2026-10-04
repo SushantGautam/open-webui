@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { v4 as uuidv4 } from 'uuid';
 	import { toast } from 'svelte-sonner';
 
@@ -867,7 +868,7 @@
 
 			messageInput?.focus({ preventScroll: true });
 		} else if (!embedded) {
-			await goto('/');
+			await goto(`${base}/`);
 		} else {
 			loading = false;
 			console.warn('[note-chat] embedded load failed; clearing spinner', {
@@ -2139,7 +2140,7 @@
 		await showArtifacts.set(false);
 
 		if (!embedded && $page.url.pathname.includes('/c/')) {
-			window.history.replaceState(window.history.state, '', `/`);
+			window.history.replaceState(window.history.state, '', `${base}/`);
 		}
 
 		autoScroll = true;
@@ -2276,7 +2277,7 @@
 				error
 			});
 			if (!embedded) {
-				await goto('/');
+				await goto(`${base}/`);
 			}
 			return null;
 		});
@@ -3685,7 +3686,7 @@
 					});
 					await chatId.set(res.chat_id);
 					if (!$temporaryChatEnabled && !embedded) {
-						window.history.replaceState(window.history.state, '', `/c/${res.chat_id}`);
+						window.history.replaceState(window.history.state, '', `${base}/c/${res.chat_id}`);
 						await refreshChatList(localStorage.token);
 
 						// Persist chat-level params (system prompt, advanced
@@ -3971,7 +3972,7 @@
 			await chatId.set(_chatId);
 
 			if (!embedded) {
-				window.history.replaceState(window.history.state, '', `/c/${_chatId}`);
+				window.history.replaceState(window.history.state, '', `${base}/c/${_chatId}`);
 			}
 
 			await tick();
@@ -4110,7 +4111,7 @@
 		try {
 			await archiveChatById(localStorage.token, id);
 			initNewChat();
-			await goto('/');
+			await goto(`${base}/`);
 			await refreshChatList(localStorage.token, { refreshPinned: true });
 			await refreshFolderChatLists();
 			toast.success($i18n.t('Chat archived.'));
@@ -4146,7 +4147,7 @@
 			const res = await deleteChatById(localStorage.token, id);
 			if (res) {
 				initNewChat();
-				await goto('/');
+				await goto(`${base}/`);
 				await refreshChatList(localStorage.token, { refreshPinned: true });
 				allTags.set(await getAllTags(localStorage.token));
 				toast.success($i18n.t('Chat deleted.'));
@@ -4368,7 +4369,7 @@
 										chatId.set(savedChat.id);
 										await refreshChatList(localStorage.token);
 
-										await goto(`/c/${savedChat.id}`);
+										await goto(`${base}/c/${savedChat.id}`);
 										toast.success($i18n.t('Conversation saved successfully'));
 									}
 								} catch (error) {

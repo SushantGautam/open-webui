@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { marked } from 'marked';
 	import Fuse from 'fuse.js';
 	import { autoUpdate, computePosition, flip, offset, shift, size } from '@floating-ui/dom';

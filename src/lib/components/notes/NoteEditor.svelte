@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { getContext, onDestroy, onMount, tick } from 'svelte';
 	import { v4 as uuidv4 } from 'uuid';
 	import fileSaver from 'file-saver';
@@ -198,7 +199,7 @@
 			$socket?.off('events:note', noteEventHandler);
 			$socket?.on('events:note', noteEventHandler);
 		} else {
-			goto('/');
+			goto(`${base}/`);
 			return;
 		}
 
@@ -817,7 +818,7 @@ ${content}
 		if (res) {
 			pinnedNotes.set(await getPinnedNoteList(localStorage.token).catch(() => []));
 			toast.success($i18n.t('Note deleted successfully'));
-			goto('/notes');
+			goto(`${base}/notes`);
 		} else {
 			toast.error($i18n.t('Failed to delete note'));
 		}

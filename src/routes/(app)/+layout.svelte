@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { onMount, tick, getContext } from 'svelte';
 
@@ -196,7 +197,7 @@
 
 	const gotoAuth = async () => {
 		const currentUrl = `${$page.url.pathname}${$page.url.search}`;
-		await goto(`/auth?redirect=${encodeURIComponent(currentUrl)}`);
+		await goto(`${base}/auth?redirect=${encodeURIComponent(currentUrl)}`);
 	};
 
 	const navigateChat = async (direction: -1 | 1) => {
@@ -206,7 +207,7 @@
 		const nextChat = currentIndex === -1 ? $chats[0] : $chats[currentIndex + direction];
 
 		if (nextChat) {
-			await goto(`/c/${nextChat.id}`);
+			await goto(`${base}/c/${nextChat.id}`);
 		}
 	};
 
@@ -314,7 +315,7 @@
 					} else {
 						temporaryChatEnabled.set(!$temporaryChatEnabled);
 					}
-					await goto('/');
+					await goto(`${base}/`);
 					setTimeout(() => {
 						document.getElementById('new-chat-button')?.click();
 					}, 0);

@@ -1,4 +1,5 @@
 <script>
+	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
 
 	import dayjs from '$lib/dayjs';
@@ -24,7 +25,7 @@
 			const res = await createNoteHandler(title, content);
 
 			if (res) {
-				goto(`/notes/${res.id}`, { replaceState: true });
+				goto(`${base}/notes/${res.id}`, { replaceState: true });
 			}
 			return;
 		}

@@ -1,4 +1,5 @@
 <script>
+	import { base } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 
@@ -23,16 +24,17 @@
 			});
 
 			if (!model) {
-				goto('/workspace/models');
+				goto(`${base}/workspace/models`);
 				return;
 			}
 
 			if (!model?.write_access) {
 				toast.error($i18n.t('You do not have permission to edit this model'));
-				goto('/workspace/models');
+				await goto(`${base}/workspace/models`);
+				return;
 			}
 		} else {
-			goto('/workspace/models');
+			goto(`${base}/workspace/models`);
 		}
 	});
 
@@ -50,7 +52,7 @@
 					)
 				);
 				toast.success($i18n.t('Model updated successfully'));
-				await goto('/workspace/models');
+				await goto(`${base}/workspace/models`);
 			} catch (error) {
 				toast.error(`${error}`);
 			}
@@ -66,7 +68,7 @@
 		{model}
 		{onSubmit}
 		onBack={async () => {
-			await goto('/workspace/models');
+			await goto(`${base}/workspace/models`);
 		}}
 	/>
 {/if}

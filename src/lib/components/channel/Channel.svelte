@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 
 	import { onDestroy, onMount, tick } from 'svelte';
@@ -135,7 +136,7 @@
 				}
 			}
 		} else {
-			goto('/');
+			goto(`${base}/`);
 		}
 	};
 

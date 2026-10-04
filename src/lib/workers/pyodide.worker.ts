@@ -25,7 +25,10 @@ async function loadPyodideAndPackages(packages: string[] = []) {
 	self.result = null;
 
 	self.pyodide = await loadPyodide({
-		indexURL: '/pyodide/',
+		// Resolve Pyodide assets under the app base (Vite injects BASE_URL, always
+		// trailing-slashed) so they load under a reverse-proxy subpath. Workers can't
+		// read $app/paths, so import.meta.env.BASE_URL is the build-time source of truth.
+		indexURL: `${import.meta.env.BASE_URL}pyodide/`,
 		stdout: (text) => {
 			console.log('Python output:', text);
 

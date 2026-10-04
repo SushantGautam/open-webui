@@ -2,6 +2,7 @@
 	import { toast } from 'svelte-sonner';
 
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { getContext } from 'svelte';
 	const i18n = getContext('i18n');
 
@@ -14,9 +15,9 @@
 
 	export let modal = false;
 	/** @type {() => void | Promise<void>} */
-	export let onBack = () => goto('/workspace/knowledge');
+	export let onBack = () => goto(`${base}/workspace/knowledge`);
 	/** @type {(knowledge: { id: string }) => void | Promise<void>} */
-	export let onCreated = (knowledge) => goto(`/workspace/knowledge/${knowledge.id}`);
+	export let onCreated = (knowledge) => goto(`${base}/workspace/knowledge/${knowledge.id}`);
 
 	let loading = false;
 

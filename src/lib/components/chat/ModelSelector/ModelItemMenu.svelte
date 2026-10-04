@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
@@ -56,7 +57,7 @@
 						e.preventDefault();
 
 						if (model?.preset || model?.info?.base_model_id) {
-							goto(`/workspace/models/edit?id=${encodeURIComponent(model?.id ?? '')}`);
+							goto(`${base}/workspace/models/edit?id=${encodeURIComponent(model?.id ?? '')}`);
 						} else {
 							showSettings.set({ tab: 'admin:models', state: { id: model?.id ?? null } });
 						}

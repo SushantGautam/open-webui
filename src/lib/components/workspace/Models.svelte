@@ -2,6 +2,7 @@
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
 	import { toast } from 'svelte-sonner';
+	import { base } from '$app/paths';
 	import Sortable from 'sortablejs';
 
 	import fileSaver from 'file-saver';
@@ -143,7 +144,7 @@
 
 	const openModel = (model) => {
 		if (model.write_access) {
-			goto(`/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
+			goto(`${base}/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
 		}
 	};
 
@@ -215,7 +216,7 @@
 			id: `${model.id}-clone`,
 			name: `${model.name} (Clone)`
 		});
-		goto('/workspace/models/create');
+		goto(`${base}/workspace/models/create`);
 	};
 
 	const shareModelHandler = async (model) => {
@@ -732,7 +733,7 @@
 												// LICENSE covers this Open WebUI fallback logo.
 												// Do not alter, remove, obscure, or replace it except as LICENSE permits:
 												// https://docs.openwebui.com/license.
-												e.target.src = '/favicon.png';
+												e.target.src = `${base}/static/favicon.png`;
 											}}
 										/>
 									</div>
@@ -748,7 +749,7 @@
 													placement="top-start"
 												>
 													<a
-														href={`/?model=${encodeURIComponent(model.id)}`}
+														href={`${base}/?model=${encodeURIComponent(model.id)}`}
 														class="block truncate text-[0.8125rem] leading-5 text-gray-800 group-hover:underline dark:text-gray-200"
 													>
 														{localizedModelName}
@@ -853,7 +854,7 @@
 												{model}
 												writeAccess={model.write_access}
 												editHandler={() => {
-													goto(`/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
+													goto(`${base}/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
 												}}
 												shareHandler={() => {
 													shareModelHandler(model);

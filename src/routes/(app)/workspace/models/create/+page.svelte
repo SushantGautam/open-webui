@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { config, models, settings } from '$lib/stores';
@@ -59,7 +60,7 @@
 						)
 					);
 					toast.success($i18n.t('Model created successfully!'));
-					await goto('/workspace/models');
+					await goto(`${base}/workspace/models`);
 				} catch (error: any) {
 					toast.error(`${error?.message ?? error}`);
 				}
@@ -111,7 +112,7 @@
 		{model}
 		{onSubmit}
 		onBack={async () => {
-			await goto('/workspace/models');
+			await goto(`${base}/workspace/models`);
 		}}
 	/>
 {/key}

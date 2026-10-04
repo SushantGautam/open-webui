@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { onMount, getContext } from 'svelte';
 	import { goto } from '$app/navigation';
 
@@ -14,12 +15,12 @@
 
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
-			await goto('/', { replaceState: true });
+			await goto(`${base}/`, { replaceState: true });
 		} else if (
 			!$config?.features?.enable_plugins &&
 			$page.url.pathname.includes('/admin/functions')
 		) {
-			await goto('/admin', { replaceState: true });
+			await goto(`${base}/admin`, { replaceState: true });
 		}
 		loaded = true;
 	});
@@ -73,7 +74,7 @@
 							class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/users')
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-							href="/admin">{$i18n.t('Users')}</a
+							href="{base}/admin">{$i18n.t('Users')}</a
 						>
 
 						<a
@@ -81,7 +82,7 @@
 							class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/evaluations')
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-							href="/admin/evaluations">{$i18n.t('Evaluations')}</a
+							href="{base}/admin/evaluations">{$i18n.t('Evaluations')}</a
 						>
 
 						{#if $config?.features?.enable_plugins}
@@ -90,7 +91,7 @@
 								class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/functions')
 									? ''
 									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/admin/functions">{$i18n.t('Functions')}</a
+								href="{base}/admin/functions">{$i18n.t('Functions')}</a
 							>
 						{/if}
 
@@ -99,7 +100,7 @@
 							class="min-w-fit px-1 text-sm {$page.url.pathname.includes('/admin/settings')
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-							href="/admin/settings"
+							href="{base}/admin/settings"
 							on:click={(event) => {
 								event.preventDefault();
 								showSettings.set('admin:general');

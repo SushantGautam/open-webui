@@ -5,6 +5,7 @@
 	const i18n = getContext('i18n');
 
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { user } from '$lib/stores';
 	import { updateToolAccessGrants } from '$lib/apis/tools';
 
@@ -240,7 +241,7 @@ class Tools:
 			class="mb-1 flex h-6 w-fit items-center gap-1 rounded-md text-xs text-gray-400 transition-colors duration-75 hover:text-gray-700 dark:text-gray-600 dark:hover:text-gray-300"
 			type="button"
 			on:click={() => {
-				goto('/workspace/tools');
+				goto(`${base}/workspace/tools`);
 			}}
 		>
 			<ChevronLeft className="size-3" strokeWidth="2" />

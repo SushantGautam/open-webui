@@ -4,6 +4,7 @@
 	import Sortable from 'sortablejs';
 
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import {
 		user,
@@ -189,21 +190,21 @@
 
 	const getMenuItemMeta = (id) => {
 		const items = {
-			notes: { label: $i18n.t('Notes'), href: '/notes', iconType: 'note' },
-			workspace: { label: $i18n.t('Workspace'), href: '/workspace', iconType: 'workspace' },
-			automations: { label: $i18n.t('Automations'), href: '/automations', iconType: 'automations' },
-			calendar: { label: $i18n.t('Calendar'), href: '/calendar', iconType: 'calendar' },
-			playground: { label: $i18n.t('Playground'), href: '/playground', iconType: 'playground' }
+			notes: { label: $i18n.t('Notes'), href: `${base}/notes`, iconType: 'note' },
+			workspace: { label: $i18n.t('Workspace'), href: `${base}/workspace`, iconType: 'workspace' },
+			automations: { label: $i18n.t('Automations'), href: `${base}/automations`, iconType: 'automations' },
+			calendar: { label: $i18n.t('Calendar'), href: `${base}/calendar`, iconType: 'calendar' },
+			playground: { label: $i18n.t('Playground'), href: `${base}/playground`, iconType: 'playground' }
 		};
 		return items[id];
 	};
 
 	const menuItemPathPrefixes = {
-		notes: '/notes',
-		workspace: '/workspace',
-		calendar: '/calendar',
-		automations: '/automations',
-		playground: '/playground'
+		notes: `${base}/notes`,
+		workspace: `${base}/workspace`,
+		calendar: `${base}/calendar`,
+		automations: `${base}/automations`,
+		playground: `${base}/playground`
 	};
 
 	const getActiveMenuItemId = (pathname) => {
@@ -869,7 +870,7 @@
 			await initChannels();
 			showCreateChannel = false;
 			showChannels = true;
-			goto(`/channels/${res.id}`);
+			goto(`${base}/channels/${res.id}`);
 		}
 	}}
 />
@@ -932,7 +933,7 @@
 		id="sidebar-new-chat-button"
 		class="hidden"
 		on:click={() => {
-			goto('/');
+			goto(`${base}/`);
 			newChatHandler();
 		}}
 	/>
@@ -984,13 +985,13 @@
 						<Tooltip content={$i18n.t('New Chat')} placement="right">
 							<a
 								class=" cursor-pointer flex size-8 items-center justify-center transition group"
-								href="/"
+								href="{base}/"
 								draggable="false"
 								on:click={async (e) => {
 									e.stopImmediatePropagation();
 									e.preventDefault();
 
-									goto('/');
+									goto(`${base}/`);
 									newChatHandler();
 								}}
 								aria-label={$i18n.t('New Chat')}
@@ -1033,11 +1034,11 @@
 								<Tooltip content={$i18n.t(meta.label)} placement="right">
 									<a
 										class=" cursor-pointer flex size-8 items-center justify-center transition group"
-										href={meta.href}
+										href={`${base}${meta.href}`}
 										on:click={async (e) => {
 											e.stopImmediatePropagation();
 											e.preventDefault();
-											goto(meta.href);
+											goto(`${base}${meta.href}`);
 											itemClickHandler();
 										}}
 										draggable="false"
@@ -1146,7 +1147,7 @@
 				>
 					<a
 						class="flex items-center rounded-xl size-8.5 h-full justify-center hover:bg-gray-100 dark:hover:bg-gray-900 transition no-drag-region"
-						href="/"
+						href="{base}/"
 						draggable="false"
 						on:click={newChatHandler}
 					>
@@ -1161,7 +1162,7 @@
 						/>
 					</a>
 
-					<a href="/" class="flex flex-1 px-0.5" on:click={newChatHandler}>
+					<a href="{base}/" class="flex flex-1 px-0.5" on:click={newChatHandler}>
 						<!-- LICENSE covers this Open WebUI sidebar name.
 					Do not alter, remove, obscure, or replace it except as LICENSE permits:
 					https://docs.openwebui.com/license. -->
@@ -1213,7 +1214,7 @@
 							<a
 								id="sidebar-new-chat-button"
 								class="group grow flex items-center space-x-2 rounded-xl px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-900 transition outline-none"
-								href="/"
+								href="{base}/"
 								draggable="false"
 								on:click={newChatHandler}
 								aria-label={$i18n.t('New Chat')}
@@ -1267,7 +1268,7 @@
 													? 'bg-black/[0.035] dark:bg-white/[0.06]'
 													: 'bg-black/[0.035] dark:bg-white/[0.045]'
 												: 'hover:bg-gray-100 dark:hover:bg-gray-900'}"
-											href={meta.href}
+											href={`${base}${meta.href}`}
 											on:click={itemClickHandler}
 											draggable="false"
 											aria-label={$i18n.t(meta.label)}
@@ -1318,7 +1319,7 @@
 							onAdd={async () => {
 								const note = await createNoteHandler('New Note');
 								if (note) {
-									goto(`/notes/${note.id}`);
+									goto(`${base}/notes/${note.id}`);
 								}
 							}}
 							onAddLabel={$i18n.t('New Note')}

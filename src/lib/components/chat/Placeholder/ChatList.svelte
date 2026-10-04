@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { getContext } from 'svelte';
 	import type { Writable } from 'svelte/store';
 
@@ -210,7 +211,7 @@
 			<a
 				class=" w-full flex justify-between items-center rounded-lg text-sm py-2 px-3 hover:bg-gray-50 dark:hover:bg-gray-850"
 				draggable="false"
-				href={`/c/${chat.id}`}
+				href={`${base}/c/${chat.id}`}
 				on:click={() => markChatRead(chat, unread)}
 			>
 				<div class="flex min-w-0 items-center w-full sm:basis-3/5">
