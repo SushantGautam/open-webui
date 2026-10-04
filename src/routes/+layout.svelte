@@ -55,6 +55,7 @@
 	import { getSessionUser, updateUserTimezone, userSignOut } from '$lib/apis/auths';
 	import { getAllTags } from '$lib/apis/chats';
 	import { chatCompletion } from '$lib/apis/openai';
+	import { base } from '$app/paths';
 	import { isTemporaryChatId } from '$lib/utils/chatId';
 	import {
 		addOpenAIConnection,
@@ -164,12 +165,18 @@
 	};
 
 	const setupSocket = async (enableWebsocket) => {
-		const _socket = io(`${WEBUI_BASE_URL}` || undefined, {
+		// WEBUI_BASE_URL is the SvelteKit base ("/openwebui") under a subpath deploy,
+		// or a full dev URL. socket.io parses the first arg's path as the *namespace*,
+		// so passing the subpath here connects to namespace "/openwebui" (the server
+		// only registers "/" → CONNECT_ERROR "44/openwebui"). Pass the dev origin
+		// as-is, otherwise connect same-origin; the subpath rides only on `path` below.
+		const socketServerUrl = WEBUI_BASE_URL.startsWith('http') ? WEBUI_BASE_URL : undefined;
+		const _socket = io(socketServerUrl, {
 			reconnection: true,
 			reconnectionDelay: 1000,
 			reconnectionDelayMax: 5000,
 			randomizationFactor: 0.5,
-			path: '/ws/socket.io',
+			path: `${base}/ws/socket.io`,
 			transports: enableWebsocket ? ['websocket'] : ['polling', 'websocket'],
 			auth: { token: localStorage.token }
 		});
@@ -608,7 +615,7 @@
 			toast.custom(NotificationToast, {
 				componentProps: {
 					onClick: () => {
-						goto('/calendar');
+						goto(`${base}/calendar`);
 					},
 					title: data.title,
 					content: timeStr
@@ -748,7 +755,7 @@
 					) {
 						playingNotificationSound.set(true);
 
-						const audio = new Audio(`/audio/notification.mp3`);
+						const audio = new Audio(`${WEBUI_BASE_URL}/audio/notification.mp3`);
 						audio.play().finally(() => {
 							// Ensure the global state is reset after the sound finishes
 							playingNotificationSound.set(false);
@@ -770,7 +777,7 @@
 					toast.custom(NotificationToast, {
 						componentProps: {
 							onClick: () => {
-								goto(`/c/${event.chat_id}`);
+								goto(`${base}/c/${event.chat_id}`);
 							},
 							content: contentPreview,
 							title: displayTitle
@@ -881,7 +888,7 @@
 					componentProps: {
 						onClick: () => {
 							goto(
-								`/channels/${event.channel_id}${data?.parent_id ? `?thread=${data.parent_id}` : ''}`
+								`${base}/channels/${event.channel_id}${data?.parent_id ? `?thread=${data.parent_id}` : ''}`
 							);
 						},
 						content: data?.content,
@@ -988,12 +995,12 @@
 		}
 		if (event.type === 'query' && (event.data?.query || event.data?.files?.length)) {
 			desktopEvent.set(event);
-			await goto('/');
+			await goto(`${base}/`);
 			return;
 		}
 		if (event.type === 'call') {
 			desktopEvent.set(event);
-			await goto('/');
+			await goto(`${base}/`);
 			return;
 		}
 		if (event.type === 'theme:update' && event.data?.theme) {
@@ -1243,7 +1250,7 @@
 			if (error?.authRedirect) {
 				// Forward-auth proxy is redirecting to an external login page.
 				// Full-page navigation lets the browser follow the redirect natively.
-				window.location.href = '/';
+				window.location.href = `${base}/`;
 				return;
 			}
 			console.error('Error loading backend config:', error);
@@ -1314,7 +1321,7 @@
 			}
 		} else {
 			// Redirect to /error when Backend Not Detected
-			await goto(`/error`);
+			await goto(`${base}/error`);
 		}
 
 		await tick();
@@ -1335,7 +1342,7 @@
 
 			document.getElementById('splash-screen')?.remove();
 
-			const audio = new Audio(`/audio/greeting.mp3`);
+			const audio = new Audio(`${WEBUI_BASE_URL}/audio/greeting.mp3`);
 			const playAudio = () => {
 				audio.play();
 				document.removeEventListener('click', playAudio);
@@ -1396,7 +1403,7 @@
 		rel="search"
 		type="application/opensearchdescription+xml"
 		title={$WEBUI_NAME}
-		href="/opensearch.xml"
+		href="{base}/opensearch.xml"
 		crossorigin="use-credentials"
 	/>
 </svelte:head>

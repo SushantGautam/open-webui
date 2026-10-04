@@ -8,6 +8,7 @@
 	dayjs.extend(relativeTime);
 
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { onMount, getContext, tick, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
@@ -160,7 +161,7 @@
 	};
 
 	const openPrompt = (prompt) => {
-		goto(`/workspace/prompts/${prompt.id}`);
+		goto(`${base}/workspace/prompts/${prompt.id}`);
 	};
 
 	const shouldIgnoreRowClick = (target: EventTarget | null) => {
@@ -677,7 +678,7 @@
 										<PromptMenu
 											show={openPromptMenuId === prompt.id}
 											editHandler={() => {
-												goto(`/workspace/prompts/${prompt.id}`);
+												goto(`${base}/workspace/prompts/${prompt.id}`);
 											}}
 											shareHandler={() => {
 												shareHandler(prompt);

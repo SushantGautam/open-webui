@@ -6,37 +6,51 @@
 		visual, textual, symbolic identifiers, metadata, and surrounding UI.
 		Do not alter, remove, obscure, or replace it except as LICENSE permits:
 		https://docs.openwebui.com/license. -->
-		<link rel="icon" type="image/png" href="/static/favicon.png" crossorigin="use-credentials" />
+		<link
+		rel="icon"
+		type="image/png"
+		href="%sveltekit.assets%/static/favicon.png"
+		crossorigin="use-credentials"
+		/>
 		<link
 			rel="icon"
 			type="image/png"
-			href="/static/favicon-96x96.png"
+			href="%sveltekit.assets%/static/favicon-96x96.png"
 			sizes="96x96"
 			crossorigin="use-credentials"
 		/>
 		<link
 			rel="icon"
 			type="image/svg+xml"
-			href="/static/favicon.svg"
+			href="%sveltekit.assets%/static/favicon.svg"
 			crossorigin="use-credentials"
 		/>
-		<link rel="shortcut icon" href="/static/favicon.ico" crossorigin="use-credentials" />
+		<link
+			rel="shortcut icon"
+			href="%sveltekit.assets%/static/favicon.ico"
+			crossorigin="use-credentials"
+		/>
 		<link
 			rel="apple-touch-icon"
 			sizes="180x180"
-			href="/static/apple-touch-icon.png"
+			href="%sveltekit.assets%/static/apple-touch-icon.png"
 			crossorigin="use-credentials"
 		/>
-		<link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
+		<link rel="manifest" href="%sveltekit.assets%/manifest.json" crossorigin="use-credentials" />
 		<meta
 			name="viewport"
 			content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
 		/>
 		<meta name="theme-color" content="#171717" />
 		<meta name="robots" content="noindex,nofollow" />
+		<meta name="webui-assets" content="%sveltekit.assets%" />
 
-		<script src="/static/loader.js" defer crossorigin="use-credentials"></script>
-		<link rel="stylesheet" href="/static/custom.css" crossorigin="use-credentials" />
+		<script src="%sveltekit.assets%/static/loader.js" defer crossorigin="use-credentials"></script>
+		<link
+			rel="stylesheet"
+			href="%sveltekit.assets%/static/custom.css"
+			crossorigin="use-credentials"
+		/>
 
 		<script>
 			function resizeIframe(obj) {
@@ -78,9 +92,10 @@
 				// LICENSE covers these Open WebUI splash logo assets.
 				// Do not alter, remove, obscure, or replace them except as LICENSE permits:
 				// https://docs.openwebui.com/license.
+				const assetsBase = document.querySelector('meta[name="webui-assets"]')?.content || '';
 				const preloadHref = document.documentElement.classList.contains('dark')
-					? '/static/splash-dark.png'
-					: '/static/splash.png';
+					? `${assetsBase}/static/splash-dark.png`
+					: `${assetsBase}/static/splash.png`;
 				const preload = document.createElement('link');
 				preload.rel = 'preload';
 				preload.as = 'image';
@@ -112,7 +127,10 @@
 				// LICENSE covers this Open WebUI splash logo.
 				// Do not alter, remove, obscure, or replace it except as LICENSE permits:
 				// https://docs.openwebui.com/license.
-				logo.src = isDarkMode ? '/static/splash-dark.png' : '/static/splash.png';
+				const _assetsBase = document.querySelector('meta[name="webui-assets"]')?.content || '';
+				logo.src = isDarkMode
+					? `${_assetsBase}/static/splash-dark.png`
+					: `${_assetsBase}/static/splash.png`;
 
 				document.addEventListener('DOMContentLoaded', function () {
 					const splash = document.getElementById('splash-screen');
@@ -163,7 +181,7 @@
 				<img
 					id="logo-her"
 					style="width: auto; height: 13rem"
-					src="/static/splash.png"
+					src="%sveltekit.assets%/static/splash.png"
 					loading="eager"
 					fetchpriority="high"
 					class="animate-pulse-fast"

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { getContext } from 'svelte';
 
 	const i18n = getContext('i18n');
@@ -32,7 +33,7 @@
 	>
 		<a
 			class="grow flex items-center space-x-2 rounded-xl px-2 py-[0.4375rem] group-hover:bg-gray-100 dark:group-hover:bg-gray-900 transition"
-			href="/?model={model?.id}"
+			href="{base}/?model={model?.id}"
 			on:click={onClick}
 			draggable="false"
 		>
@@ -45,7 +46,7 @@
 						// LICENSE covers this Open WebUI fallback logo.
 						// Do not alter, remove, obscure, or replace it except as LICENSE permits:
 						// https://docs.openwebui.com/license.
-						e.currentTarget.src = '/favicon.png';
+						e.currentTarget.src = `${base}/static/favicon.png`;
 					}}
 				/>
 			</div>

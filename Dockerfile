@@ -29,6 +29,7 @@ ARG BUILD_HASH
 ARG USE_SLIM
 ARG UID
 ARG GID
+ARG WEBUI_SUBPATH=""
 
 # Set Node.js options (heap limit Allocation failed - JavaScript heap out of memory)
 # ENV NODE_OPTIONS="--max-old-space-size=4096"
@@ -38,11 +39,15 @@ WORKDIR /app
 # to store git revision in build
 RUN apk add --no-cache git
 
+# The SvelteKit/Vite production build OOMs at Node's ~2GB default heap.
+ENV NODE_OPTIONS="--max-old-space-size=6144"
+
 COPY package.json package-lock.json ./
 RUN npm ci --force
 
 COPY . .
 ENV APP_BUILD_HASH=${BUILD_HASH}
+ENV WEBUI_SUBPATH=${WEBUI_SUBPATH}
 RUN npm run build && \
     if [ "$USE_SLIM" = "true" ]; then find build -type f -name '*.map' -delete; fi
 
@@ -227,5 +232,10 @@ USER $UID:$GID
 ARG BUILD_HASH
 ENV WEBUI_BUILD_VERSION=${BUILD_HASH}
 ENV DOCKER=true
+
+# Default the backend runtime subpath to match the value the frontend was built
+# with. Can still be overridden at runtime with `-e WEBUI_SUBPATH=...`.
+ARG WEBUI_SUBPATH=""
+ENV WEBUI_SUBPATH=${WEBUI_SUBPATH}
 
 CMD [ "bash", "start.sh"]

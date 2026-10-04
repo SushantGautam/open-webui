@@ -1,3 +1,5 @@
+import { browser, dev } from '$app/environment';
+import { base } from '$app/paths';
 // import { version } from '../../package.json';
 
 // LICENSE covers this Open WebUI branding surface, including name, logo,
@@ -6,8 +8,10 @@
 // https://docs.openwebui.com/license.
 export const APP_NAME = 'Open WebUI';
 
-export const WEBUI_HOSTNAME = '';
-export const WEBUI_BASE_URL = '';
+export const WEBUI_HOSTNAME = browser ? (dev ? `${location.hostname}:8080` : ``) : '';
+// In dev mode connect to the backend dev server; in production use the SvelteKit base path so
+// that all API requests are relative to whatever subpath the app is deployed under.
+export const WEBUI_BASE_URL = browser ? (dev ? `http://${WEBUI_HOSTNAME}` : base) : base;
 export const WEBUI_API_BASE_URL = `${WEBUI_BASE_URL}/api/v1`;
 
 export const OLLAMA_API_BASE_URL = `${WEBUI_BASE_URL}/ollama`;

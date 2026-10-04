@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { getAbortSignal, getContext, onMount } from 'svelte';
 	const i18n = getContext('i18n');
 
@@ -233,7 +234,7 @@
 									// LICENSE covers this Open WebUI fallback logo.
 									// Do not alter, remove, obscure, or replace it except as LICENSE permits:
 									// https://docs.openwebui.com/license.
-									e.currentTarget.src = '/favicon.png';
+									e.currentTarget.src = `${base}/static/favicon.png`;
 								}}
 							/>
 						{:else if item.type === 'user'}
@@ -245,7 +246,7 @@
 									// LICENSE covers this Open WebUI fallback logo.
 									// Do not alter, remove, obscure, or replace it except as LICENSE permits:
 									// https://docs.openwebui.com/license.
-									e.currentTarget.src = '/favicon.png';
+									e.currentTarget.src = `${base}/static/favicon.png`;
 								}}
 							/>
 						{/if}

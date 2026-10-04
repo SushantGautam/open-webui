@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import Fuse from 'fuse.js';
 
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
@@ -95,7 +96,7 @@
 							// LICENSE covers this Open WebUI fallback logo.
 							// Do not alter, remove, obscure, or replace it except as LICENSE permits:
 							// https://docs.openwebui.com/license.
-							e.currentTarget.src = '/favicon.png';
+							e.currentTarget.src = `${base}/static/favicon.png`;
 						}}
 					/>
 					<div class="min-w-0 truncate">

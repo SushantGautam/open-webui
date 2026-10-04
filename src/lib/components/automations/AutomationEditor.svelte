@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { onMount, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -193,7 +194,7 @@
 		});
 		if (res) {
 			toast.success($i18n.t(`Deleted {{name}}`, { name: automation.name }));
-			goto('/automations');
+			goto(`${base}/automations`);
 		}
 	};
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { onMount, getContext } from 'svelte';
 	import { models } from '$lib/stores';
 	import {
@@ -487,7 +488,7 @@
 												// LICENSE covers this Open WebUI fallback logo.
 												// Do not alter, remove, obscure, or replace it except as LICENSE permits:
 												// https://docs.openwebui.com/license.
-												e.target.src = '/favicon.png';
+												e.target.src = `${base}/static/favicon.png`;
 											}}
 										/>
 										<span class="truncate max-w-[9.375rem]">{model.name}</span>
@@ -595,7 +596,7 @@
 											alt={user.name || 'User'}
 											class="size-5 rounded-full object-cover shrink-0"
 											on:error={(e) => {
-												e.target.src = '/user.png';
+												e.target.src = `${base}/static/user.png`;
 											}}
 										/>
 										<span class="truncate max-w-[9.375rem]"

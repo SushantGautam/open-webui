@@ -2,6 +2,7 @@
 	import { createEventDispatcher, getContext, onMount, tick } from 'svelte';
 
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { fade, slide } from 'svelte/transition';
 
 	import { getUsage } from '$lib/apis';
@@ -243,14 +244,14 @@
 					class="user-menu-row flex items-center w-full rounded-xl hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition-colors"
 				>
 					<a
-						href="/workspace"
+						href="{base}/workspace"
 						draggable="false"
 						class="flex flex-1 min-w-0 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] cursor-pointer select-none"
 						on:click={async (e) => {
 							if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
 							e.preventDefault();
 							show = false;
-							goto('/workspace');
+							goto(`${base}/workspace`);
 							if ($mobile) {
 								await tick();
 								showSidebar.set(false);
@@ -289,14 +290,14 @@
 					class="user-menu-row flex items-center w-full rounded-xl hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition-colors"
 				>
 					<a
-						href="/notes"
+						href="{base}/notes"
 						draggable="false"
 						class="flex flex-1 min-w-0 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] cursor-pointer select-none"
 						on:click={async (e) => {
 							if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
 							e.preventDefault();
 							show = false;
-							goto('/notes');
+							goto(`${base}/notes`);
 							if ($mobile) {
 								await tick();
 								showSidebar.set(false);
@@ -335,14 +336,14 @@
 					class="user-menu-row flex items-center w-full rounded-xl hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition-colors"
 				>
 					<a
-						href="/calendar"
+						href="{base}/calendar"
 						draggable="false"
 						class="flex flex-1 min-w-0 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] cursor-pointer select-none"
 						on:click={async (e) => {
 							if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
 							e.preventDefault();
 							show = false;
-							goto('/calendar');
+							goto(`${base}/calendar`);
 							if ($mobile) {
 								await tick();
 								showSidebar.set(false);
@@ -381,14 +382,14 @@
 					class="user-menu-row flex items-center w-full rounded-xl hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition-colors"
 				>
 					<a
-						href="/automations"
+						href="{base}/automations"
 						draggable="false"
 						class="flex flex-1 min-w-0 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] cursor-pointer select-none"
 						on:click={async (e) => {
 							if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
 							e.preventDefault();
 							show = false;
-							goto('/automations');
+							goto(`${base}/automations`);
 							if ($mobile) {
 								await tick();
 								showSidebar.set(false);
@@ -427,14 +428,14 @@
 					class="user-menu-row flex items-center w-full rounded-xl hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition-colors"
 				>
 					<a
-						href="/playground"
+						href="{base}/playground"
 						draggable="false"
 						class="flex flex-1 min-w-0 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] cursor-pointer select-none"
 						on:click={async (e) => {
 							if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
 							e.preventDefault();
 							show = false;
-							goto('/playground');
+							goto(`${base}/playground`);
 							if ($mobile) {
 								await tick();
 								showSidebar.set(false);
@@ -533,7 +534,7 @@
 
 			{#if role === 'admin'}
 				<a
-					href="/admin"
+					href="{base}/admin"
 					draggable="false"
 					class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] w-full hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition cursor-pointer select-none"
 					on:click={async (e) => {
@@ -542,7 +543,7 @@
 						}
 						e.preventDefault();
 						show = false;
-						goto('/admin');
+						goto(`${base}/admin`);
 						if ($mobile) {
 							await tick();
 							showSidebar.set(false);

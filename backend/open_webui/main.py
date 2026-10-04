@@ -125,6 +125,7 @@ from open_webui.env import (
     WEBUI_SECRET_KEY,
     WEBUI_SESSION_COOKIE_SAME_SITE,
     WEBUI_SESSION_COOKIE_SECURE,
+    WEBUI_SUBPATH,
 )
 from open_webui.events import (
     EVENTS,
@@ -509,7 +510,9 @@ app = FastAPI(
     openapi_url='/openapi.json' if ENV == 'dev' else None,
     redoc_url=None,
     lifespan=lifespan,
+    root_path=WEBUI_SUBPATH,
 )
+log.info('FastAPI app initialized with root_path=%r (from WEBUI_SUBPATH).', app.root_path)
 
 
 @app.exception_handler(RecurrenceEvaluationTimeout)
@@ -2312,6 +2315,7 @@ async def get_app_config(request: Request):
         'status': True,
         'name': app.state.WEBUI_NAME,
         'version': VERSION,
+        'subpath': WEBUI_SUBPATH,
         'default_locale': str(DEFAULT_LOCALE),
         'i18n': config.get('ui.i18n') or {},
         'oauth': {
@@ -2889,7 +2893,7 @@ async def get_manifest_json():
             'name': app.state.WEBUI_NAME,
             'short_name': app.state.WEBUI_NAME,
             'description': f'{app.state.WEBUI_NAME} is an open, extensible, user-friendly interface for AI that adapts to your workflow.',
-            'start_url': '/',
+            'start_url': f'{WEBUI_SUBPATH}/',
             'display': 'standalone',
             'background_color': '#343541',
             'icons': [
@@ -2897,20 +2901,20 @@ async def get_manifest_json():
                 # Do not alter, remove, obscure, or replace it except as LICENSE permits:
                 # https://docs.openwebui.com/license.
                 {
-                    'src': '/static/logo.png',
+                    'src': f'{WEBUI_SUBPATH}/static/logo.png',
                     'type': 'image/png',
                     'sizes': '500x500',
                     'purpose': 'any',
                 },
                 {
-                    'src': '/static/logo.png',
+                    'src': f'{WEBUI_SUBPATH}/static/logo.png',
                     'type': 'image/png',
                     'sizes': '500x500',
                     'purpose': 'maskable',
                 },
             ],
             'share_target': {
-                'action': '/',
+                'action': f'{WEBUI_SUBPATH}/',
                 'method': 'GET',
                 'params': {'text': 'shared'},
             },
@@ -3055,9 +3059,9 @@ def swagger_ui_html(*args, **kwargs):
     return get_swagger_ui_html(
         *args,
         **kwargs,
-        swagger_js_url='/static/swagger-ui/swagger-ui-bundle.js',
-        swagger_css_url='/static/swagger-ui/swagger-ui.css',
-        swagger_favicon_url='/static/swagger-ui/favicon.png',
+        swagger_js_url=f'{WEBUI_SUBPATH}/static/swagger-ui/swagger-ui-bundle.js',
+        swagger_css_url=f'{WEBUI_SUBPATH}/static/swagger-ui/swagger-ui.css',
+        swagger_favicon_url=f'{WEBUI_SUBPATH}/static/swagger-ui/favicon.png',
     )
 
 

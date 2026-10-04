@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
 
 	import { page } from '$app/stores';
@@ -20,7 +21,7 @@
 			!($config?.features as any)?.enable_automations ||
 			($user?.role !== 'admin' && !($user?.permissions?.features?.automations ?? false))
 		) {
-			goto('/');
+			goto(`${base}/`);
 			return;
 		}
 
@@ -34,10 +35,10 @@
 				automation = res;
 				loaded = true;
 			} else {
-				goto('/automations');
+				goto(`${base}/automations`);
 			}
 		} else {
-			goto('/automations');
+			goto(`${base}/automations`);
 		}
 	});
 </script>

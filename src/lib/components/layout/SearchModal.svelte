@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { getContext, onDestroy, onMount, tick } from 'svelte';
 	const i18n: any = getContext('i18n');
@@ -102,7 +103,7 @@
 			chatList = chatList?.filter((c) => c.id !== id) ?? null;
 
 			if ($currentChatId === id) {
-				await goto('/');
+				await goto(`${base}/`);
 				currentChatId.set('');
 			}
 
@@ -124,7 +125,7 @@
 			tags.set(await getAllTags(localStorage.token));
 
 			if ($currentChatId === id) {
-				await goto('/');
+				await goto(`${base}/`);
 				currentChatId.set('');
 			}
 
@@ -255,7 +256,7 @@
 		{
 			label: $i18n.t('Start a new conversation'),
 			onClick: async () => {
-				await goto(`/${query ? `?q=${query}` : ''}`);
+				await goto(`${base}/${query ? `?q=${query}` : ''}`);
 				show = false;
 				onClose();
 			},
@@ -530,7 +531,7 @@
 						{
 							label: $i18n.t('Create a new note'),
 							onClick: async () => {
-								await goto(`/notes/new?content=${encodeURIComponent(query)}`);
+								await goto(`${base}/notes/new?content=${encodeURIComponent(query)}`);
 								show = false;
 								onClose();
 							},
@@ -734,10 +735,10 @@
 							{:else}
 								<a
 									class="flex-1 min-w-0"
-									href="/c/{chat.id}"
+									href={`${base}/c/{chat.id}`}
 									draggable="false"
 									on:click={async () => {
-										await goto(`/c/${chat.id}`);
+										await goto(`${base}/c/${chat.id}`);
 										show = false;
 										onClose();
 									}}

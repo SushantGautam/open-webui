@@ -19,6 +19,7 @@
 		workspaceCounts
 	} from '$lib/stores';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import {
 		getSkills,
 		getSkillById,
@@ -75,7 +76,7 @@
 			{
 				id: 'skills-new',
 				label: $i18n.t('Create'),
-				href: '/workspace/skills/create',
+				href: `${base}/workspace/skills/create`,
 				visible: $user?.role === 'admin' || $user?.permissions?.workspace?.skills
 			},
 			{
@@ -166,7 +167,7 @@
 	};
 
 	const openSkill = (skill) => {
-		goto(`/workspace/skills/edit?id=${encodeURIComponent(skill.id)}`);
+		goto(`${base}/workspace/skills/edit?id=${encodeURIComponent(skill.id)}`);
 	};
 
 	const shouldIgnoreRowClick = (target: EventTarget | null) => {
@@ -185,7 +186,7 @@
 				id: `${_skill.id}_clone`,
 				name: `${_skill.name} (Clone)`
 			});
-			goto('/workspace/skills/create');
+			goto(`${base}/workspace/skills/create`);
 		}
 	};
 
@@ -320,7 +321,7 @@
 								is_active: true,
 								access_grants: []
 							});
-							goto('/workspace/skills/create');
+							goto(`${base}/workspace/skills/create`);
 						}
 					};
 					reader.readAsText(file);
@@ -540,7 +541,7 @@
 											<SkillMenu
 												show={openSkillMenuId === skill.id}
 												editHandler={() => {
-													goto(`/workspace/skills/edit?id=${encodeURIComponent(skill.id)}`);
+													goto(`${base}/workspace/skills/edit?id=${encodeURIComponent(skill.id)}`);
 												}}
 												cloneHandler={() => {
 													cloneHandler(skill);

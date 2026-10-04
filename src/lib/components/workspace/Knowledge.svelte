@@ -4,6 +4,7 @@
 	dayjs.extend(relativeTime);
 
 	import { toast } from 'svelte-sonner';
+	import { base } from '$app/paths';
 	import { onMount, getContext, tick, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
@@ -225,7 +226,7 @@
 			return;
 		}
 
-		goto(`/workspace/knowledge/${item.id}`);
+		goto(`${base}/workspace/knowledge/${item.id}`);
 	};
 
 	const shouldIgnoreRowClick = (target: EventTarget | null) => {

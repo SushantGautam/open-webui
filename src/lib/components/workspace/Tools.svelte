@@ -21,6 +21,7 @@
 	} from '$lib/stores';
 
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import {
 		createNewTool,
 		loadToolByUrl,
@@ -83,7 +84,7 @@
 			{
 				id: 'tools-new',
 				label: $i18n.t('Create'),
-				href: '/workspace/tools/create'
+				href: `${base}/workspace/tools/create`
 			},
 			{
 				id: 'tools-import-link',
@@ -175,7 +176,7 @@
 	};
 
 	const openTool = (tool) => {
-		goto(`/workspace/tools/edit?id=${encodeURIComponent(tool.id)}`);
+		goto(`${base}/workspace/tools/edit?id=${encodeURIComponent(tool.id)}`);
 	};
 
 	const shouldIgnoreRowClick = (target: EventTarget | null) => {
@@ -221,7 +222,7 @@
 				id: `${_tool.id}_clone`,
 				name: `${_tool.name} (Clone)`
 			});
-			goto('/workspace/tools/create');
+			goto(`${base}/workspace/tools/create`);
 		}
 	};
 
@@ -309,7 +310,7 @@
 		sessionStorage.tool = JSON.stringify({
 			...tool
 		});
-		goto('/workspace/tools/create');
+		goto(`${base}/workspace/tools/create`);
 	}}
 	loadUrlHandler={async (url) => {
 		return await loadToolByUrl(localStorage.token, url);
@@ -583,7 +584,7 @@
 										<ToolMenu
 											show={openToolMenuId === tool.id}
 											editHandler={() => {
-												goto(`/workspace/tools/edit?id=${encodeURIComponent(tool.id)}`);
+												goto(`${base}/workspace/tools/edit?id=${encodeURIComponent(tool.id)}`);
 											}}
 											shareHandler={() => {
 												shareHandler(tool);

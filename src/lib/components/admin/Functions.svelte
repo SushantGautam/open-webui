@@ -2,6 +2,7 @@
 	import { resolveLocalizedResource } from '$lib/utils/localizedContent';
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
+	import { base } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
@@ -149,7 +150,7 @@
 	};
 
 	const openFunction = (func) => {
-		goto(`/admin/functions/edit?id=${encodeURIComponent(func.id)}`);
+		goto(`${base}/admin/functions/edit?id=${encodeURIComponent(func.id)}`);
 	};
 
 	const shouldIgnoreRowClick = (target: EventTarget | null) => {
@@ -197,7 +198,7 @@
 				id: `${_function.id}_clone`,
 				name: `${_function.name} (${$i18n.t('Clone')})`
 			});
-			goto('/admin/functions/create');
+			goto(`${base}/admin/functions/create`);
 		}
 	};
 
@@ -325,7 +326,7 @@
 		sessionStorage.function = JSON.stringify({
 			...func
 		});
-		goto('/admin/functions/create');
+		goto(`${base}/admin/functions/create`);
 	}}
 />
 
@@ -363,7 +364,7 @@
 								{
 									id: 'functions-new',
 									label: $i18n.t('Create'),
-									href: '/admin/functions/create'
+									href: `${base}/admin/functions/create`
 								},
 								{
 									id: 'functions-import-link',
@@ -653,7 +654,7 @@
 											{func}
 											show={openFunctionMenuId === func.id}
 											editHandler={() => {
-												goto(`/admin/functions/edit?id=${encodeURIComponent(func.id)}`);
+												goto(`${base}/admin/functions/edit?id=${encodeURIComponent(func.id)}`);
 											}}
 											shareHandler={() => {
 												shareHandler(func);

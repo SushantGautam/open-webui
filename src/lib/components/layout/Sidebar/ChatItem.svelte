@@ -15,6 +15,7 @@
 </script>
 
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 	import { goto, invalidate, invalidateAll } from '$app/navigation';
@@ -164,7 +165,7 @@
 
 		if ($mobile) {
 			event?.preventDefault();
-			void goto(`/c/${id}`);
+			void goto(`${base}/c/${id}`);
 			showSidebar.set(false);
 		}
 	};
@@ -239,7 +240,7 @@
 		});
 
 		if (res) {
-			goto(`/c/${res.id}`);
+			goto(`${base}/c/${res.id}`);
 
 			await refreshSidebar(localStorage.token);
 		}
@@ -259,7 +260,7 @@
 		if (res) {
 			tags.set(await getAllTags(localStorage.token));
 			if ($chatId === id) {
-				await goto('/');
+				await goto(`${base}/`);
 
 				await chatId.set('');
 				await tick();
@@ -281,7 +282,7 @@
 			await archiveChatById(localStorage.token, id);
 
 			if ($chatId === id) {
-				await goto('/');
+				await goto(`${base}/`);
 				chatId.set('');
 			}
 
@@ -649,7 +650,7 @@
 		<a
 			id="sidebar-chat-item"
 			class={chatItemClass}
-			href="/c/{id}"
+			href="{base}/c/{id}"
 			aria-current={id === $chatId ? 'page' : undefined}
 			on:click={selectChatHandler}
 			draggable="false"
@@ -666,7 +667,7 @@
 			<LinkPreview.Trigger
 				id="sidebar-chat-item"
 				class={chatItemClass}
-				href="/c/{id}"
+				href="{base}/c/{id}"
 				aria-current={id === $chatId ? 'page' : undefined}
 				onclick={selectChatHandler}
 				ondblclick={renameChatFromDoubleClick}

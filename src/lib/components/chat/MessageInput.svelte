@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { resolveLocalizedFunction } from '$lib/utils/localizedContent';
 	import { functions as localizedFunctions } from '$lib/stores';
 	import DOMPurify from 'dompurify';
@@ -1211,7 +1212,7 @@
 		if (res) {
 			// Clear the input content saved in session storage.
 			sessionStorage.removeItem('chat-input');
-			goto(`/notes/${res.id}`);
+			goto(`${base}/notes/${res.id}`);
 		}
 	};
 

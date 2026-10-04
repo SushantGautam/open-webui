@@ -1,8 +1,9 @@
 <script>
+	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
 	onMount(() => {
-		goto('/admin/evaluations/leaderboard', { replaceState: true });
+		goto(`${base}/admin/evaluations/leaderboard`, { replaceState: true });
 	});
 </script>
