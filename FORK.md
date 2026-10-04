@@ -138,18 +138,16 @@ Reference: SimpleAudit Studio `deploy/openwebui-subpath/Caddyfile.subpath`.
   (`docker.yaml` subpath input + `GHCR_TOKEN` login, manual-only PyPI,
   this file). This is what the plain-tag docker build checks out.
 - `v0.11.4` (TAG) — points at pristine upstream `8bd8b4fac`.
-- `publish-v114` — same commit as branch `v0.11.4` (rebuildable copy).
 
 Recipe for a new upstream version:
 
 ```
-git checkout -b publish-vNEW <pristine-sha>
+git checkout -b vNEW <pristine-sha>
 git checkout <main-tip> -- .github/workflows/docker.yaml \
                       .github/workflows/release-artifacts.yml FORK.md
 git commit -am "ci: subpath-aware docker.yaml + fork infra (pristine base)"
-git push fork publish-vNEW
-git push fork publish-vNEW:refs/heads/vNEW     # buildable branch
-git push -f fork vNEW                          # tag = pristine sha
+git push fork vNEW:refs/heads/vNEW             # buildable branch (pristine + CI)
+git push -f fork <pristine-sha>:refs/tags/vNEW # tag = pristine sha (not the CI commit)
 gh workflow run docker.yaml -r vNEW            # multi-arch build
 ```
 
