@@ -520,6 +520,10 @@ async def get_model_profile_image(
     profile_image_url = None
     updated_at = None
 
+    # Prefix static-asset redirects with the ASGI root_path so they keep the
+    # reverse-proxy subpath (a bare "/static/..." Location drops it → 404).
+    root_path = request.scope.get('root_path', '').rstrip('/')
+
     # First, check the database for regular models
     model_meta = await Models.get_model_meta_by_id(id, db=db)
     if model_meta:
@@ -558,7 +562,7 @@ async def get_model_profile_image(
                 # only serve known-safe raster types inline; reject SVG/unknown (can run script on our origin)
                 if media_type not in PROFILE_IMAGE_ALLOWED_MIME_TYPES:
                     return RedirectResponse(
-                        url='/static/favicon.png',
+                        url=f'{root_path}/static/favicon.png',
                         status_code=status.HTTP_302_FOUND,
                     )
 
@@ -580,12 +584,12 @@ async def get_model_profile_image(
             safe_static = _safe_static_redirect_path(profile_image_url)
             if safe_static:
                 return RedirectResponse(
-                    url=safe_static,
+                    url=f'{root_path}{safe_static}',
                     status_code=status.HTTP_302_FOUND,
                 )
 
     return RedirectResponse(
-        url='/static/favicon.png',
+        url=f'{root_path}/static/favicon.png',
         status_code=status.HTTP_302_FOUND,
     )
 

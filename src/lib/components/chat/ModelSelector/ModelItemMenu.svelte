@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -56,8 +57,8 @@
 
 						goto(
 							model?.preset || model?.info?.base_model_id
-								? `/workspace/models/edit?id=${encodeURIComponent(model?.id ?? '')}`
-								: `/admin/settings/models?id=${encodeURIComponent(model?.id ?? '')}`
+								? `${base}/workspace/models/edit?id=${encodeURIComponent(model?.id ?? '')}`
+								: `${base}/admin/settings/models?id=${encodeURIComponent(model?.id ?? '')}`
 						);
 						show = false;
 					}}

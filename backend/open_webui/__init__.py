@@ -67,7 +67,7 @@ def serve(
             os.environ['LD_LIBRARY_PATH'] = ':'.join(LD_LIBRARY_PATH)
 
     import open_webui.main  # noqa: F401
-    from open_webui.env import UVICORN_WORKERS  # Import the workers setting
+    from open_webui.env import UVICORN_WORKERS, WEBUI_SUBPATH  # Import the workers setting and web subpath
 
     # On Windows, uvicorn's default loop factory hardcodes ProactorEventLoop,
     # which is incompatible with psycopg v3 async.  Setting loop='none' lets
@@ -81,6 +81,7 @@ def serve(
         forwarded_allow_ips='*',
         workers=UVICORN_WORKERS,
         loop=loop,
+        root_path=WEBUI_SUBPATH,
     )
 
 
@@ -90,12 +91,15 @@ def dev(
     port: int = 8080,
     reload: bool = True,
 ):
+    from open_webui.env import WEBUI_SUBPATH
+
     uvicorn.run(
         'open_webui.main:app',
         host=host,
         port=port,
         reload=reload,
         forwarded_allow_ips='*',
+        root_path=WEBUI_SUBPATH,
     )
 
 

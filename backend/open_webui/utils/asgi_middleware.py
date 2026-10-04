@@ -256,7 +256,8 @@ class RedirectMiddleware:
                     redirect_params['q'] = text
 
         if redirect_params:
-            redirect_url = f'/?{urlencode(redirect_params)}'
+            root_path = (scope.get('root_path') or '').rstrip('/')
+            redirect_url = f'{root_path}/?{urlencode(redirect_params)}'
             response = RedirectResponse(url=redirect_url)
             await response(scope, receive, send)
             return

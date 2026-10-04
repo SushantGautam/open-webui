@@ -4,6 +4,7 @@
 	import Sortable from 'sortablejs';
 
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import {
 		user,
 		chats,
@@ -684,7 +685,7 @@
 	}}
 	onDelete={(id) => {
 		if ($chatId === id) {
-			goto('/');
+			goto(`${base}/`);
 			chatId.set('');
 		}
 	}}
@@ -725,7 +726,7 @@
 			await initChannels();
 			showCreateChannel = false;
 			showChannels = true;
-			goto(`/channels/${res.id}`);
+			goto(`${base}/channels/${res.id}`);
 		}
 	}}
 />
@@ -764,7 +765,7 @@
 	id="sidebar-new-chat-button"
 	class="hidden"
 	on:click={() => {
-		goto('/');
+		goto(`${base}/`);
 		newChatHandler();
 	}}
 />
@@ -819,13 +820,13 @@
 					<Tooltip content={$i18n.t('New Chat')} placement="right">
 						<a
 							class=" cursor-pointer flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group"
-							href="/"
+							href="{base}/"
 							draggable="false"
 							on:click={async (e) => {
 								e.stopImmediatePropagation();
 								e.preventDefault();
 
-								goto('/');
+								goto(`${base}/`);
 								newChatHandler();
 							}}
 							aria-label={$i18n.t('New Chat')}
@@ -1008,7 +1009,7 @@
 			>
 				<a
 					class="flex items-center rounded-xl size-8.5 h-full justify-center hover:bg-gray-100/50 dark:hover:bg-gray-850/50 transition no-drag-region"
-					href="/"
+					href="{base}/"
 					draggable="false"
 					on:click={newChatHandler}
 				>
@@ -1020,7 +1021,7 @@
 					/>
 				</a>
 
-				<a href="/" class="flex flex-1 px-0.5" on:click={newChatHandler}>
+				<a href="{base}/" class="flex flex-1 px-1.5" on:click={newChatHandler}>
 					<div
 						id="sidebar-webui-name"
 						class=" self-center font-medium text-gray-850 dark:text-white font-primary"
@@ -1069,7 +1070,7 @@
 						<a
 							id="sidebar-new-chat-button"
 							class="group grow flex items-center space-x-3 rounded-2xl px-2.5 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 transition outline-none"
-							href="/"
+							href="{base}/"
 							draggable="false"
 							on:click={newChatHandler}
 							aria-label={$i18n.t('New Chat')}
@@ -1210,7 +1211,7 @@
 						onAdd={async () => {
 							const note = await createNoteHandler('New Note');
 							if (note) {
-								goto(`/notes/${note.id}`);
+								goto(`${base}/notes/${note.id}`);
 							}
 						}}
 						onAddLabel={$i18n.t('New Note')}
@@ -1219,7 +1220,7 @@
 							{#each $pinnedNotes as note (note.id)}
 								<a
 									class="w-full flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-900 transition group text-sm"
-									href={`/notes/${note.id}`}
+									href={`${base}/notes/${note.id}`}
 									on:click={() => {
 										itemClickHandler();
 									}}

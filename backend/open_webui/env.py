@@ -774,6 +774,30 @@ if WEBUI_NAME != 'Open WebUI':
 
 WEBUI_FAVICON_URL = 'https://openwebui.com/favicon.png'
 WEBUI_BUILD_HASH = os.getenv('WEBUI_BUILD_HASH', 'dev-build')
+# Optional URL subpath prefix for reverse-proxy deployments (e.g. "/openwebui").
+# Leave empty to serve the app at the root path.
+WEBUI_SUBPATH = os.getenv('WEBUI_SUBPATH', '')
+# Surface the resolved subpath at startup so misconfigured deployments are easy
+# to diagnose from the pod logs.
+if WEBUI_SUBPATH == '':
+    log.info('WEBUI_SUBPATH is empty; serving Open WebUI at the root path "/".')
+else:
+    log.info(
+        'WEBUI_SUBPATH=%r; Open WebUI will be served under this prefix (FastAPI root_path).',
+        WEBUI_SUBPATH,
+    )
+    if not WEBUI_SUBPATH.startswith('/'):
+        log.warning(
+            'WEBUI_SUBPATH=%r does not start with "/"; a reverse-proxy subpath must look '
+            'like "/openwebui". This is almost certainly misconfigured.',
+            WEBUI_SUBPATH,
+        )
+    if WEBUI_SUBPATH != '/' and WEBUI_SUBPATH.endswith('/'):
+        log.warning(
+            'WEBUI_SUBPATH=%r ends with a trailing "/"; it should not (use "/openwebui", '
+            'not "/openwebui/"). This is almost certainly misconfigured.',
+            WEBUI_SUBPATH,
+        )
 TRUSTED_SIGNATURE_KEY = os.getenv('TRUSTED_SIGNATURE_KEY', '')
 
 ####################################

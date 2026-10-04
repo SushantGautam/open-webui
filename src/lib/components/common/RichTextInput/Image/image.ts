@@ -140,7 +140,7 @@ export const Image = Node.create<ImageOptions>({
 				if (file) {
 					img.setAttribute('src', safeImageUrl(file.url || ''));
 				} else {
-					img.setAttribute('src', '/image-placeholder.png');
+					img.setAttribute('src', safeImageUrl('/image-placeholder.png'));
 				}
 			} else {
 				img.setAttribute('src', safeImageUrl(node.attrs.src || ''));
@@ -156,7 +156,7 @@ export const Image = Node.create<ImageOptions>({
 					if (file) {
 						img.setAttribute('src', safeImageUrl(file.url || ''));
 					} else {
-						img.setAttribute('src', '/image-placeholder.png');
+						img.setAttribute('src', safeImageUrl('/image-placeholder.png'));
 					}
 				}
 			});

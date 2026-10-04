@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getContext, onDestroy } from 'svelte';
 	import Spinner from '../../common/Spinner.svelte';
+	import { WEBUI_BASE_URL } from '$lib/constants';
 
 	const i18n = getContext('i18n');
 
@@ -29,7 +30,7 @@
 		try {
 			const initSqlJs = (await import('sql.js')).default;
 			const SQL = await initSqlJs({
-				locateFile: () => '/sql.js/sql-wasm.wasm'
+				locateFile: () => `${WEBUI_BASE_URL}/sql.js/sql-wasm.wasm`
 			});
 			db = new SQL.Database(new Uint8Array(data));
 

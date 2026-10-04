@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { onMount, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -139,7 +140,7 @@
 		});
 		if (res) {
 			toast.success($i18n.t(`Deleted {{name}}`, { name: automation.name }));
-			goto('/automations');
+			goto(`${base}/automations`);
 		}
 	};
 
@@ -227,7 +228,7 @@
 						<button
 							class="text-sm p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition"
 							aria-label={$i18n.t('Back')}
-							on:click={() => goto('/automations')}
+							on:click={() => goto(`${base}/automations`)}
 							type="button"
 						>
 							<ChevronLeft strokeWidth="2.5" />
@@ -395,7 +396,7 @@
 											? 'cursor-pointer'
 											: 'cursor-default'}"
 										on:click={() => {
-											if (run.chat_id) goto(`/c/${run.chat_id}`);
+											if (run.chat_id) goto(`${base}/c/${run.chat_id}`);
 										}}
 										type="button"
 									>
