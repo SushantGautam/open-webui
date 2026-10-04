@@ -50,13 +50,12 @@ Images (per ref, per arch amd64/arm64):
   (`workflow_dispatch`) and does **not publish to PyPI** (trusted publishing
   is registered to the upstream repo, so publishing from this fork fails with
   `invalid-publisher`; never re-add push triggers). It builds the wheel +
-  sdist (`python -m build`, **`WEBUI_SUBPATH` exported during the build** so
-  the frontend subpath is baked in, same as the Dockerfile) and publishes
-  them as a **GitHub Release** with persistent assets. Dispatch inputs:
-  `webui_subpath` (default `/chat`; empty = root) and `tag_suffix`.
-  Tag naming mirrors the GHCR family: subpath build →
-  `v<version><tag_suffix>` (default `v0.11.4-subpath`), root build → plain
-  `v<version>` (suffix ignored). Re-dispatching clobbers the same release's
+  sdist (`python -m build`, **`WEBUI_SUBPATH=/chat` exported during the
+  build** so the frontend subpath is baked in, same as the Dockerfile) and
+  publishes them as a **GitHub Release** with persistent assets, tagged
+  `v<version>-subpath` (e.g. `v0.11.4-subpath`) — **only the `-subpath`
+  variant is published here**; root/plain builds live in the official
+  `open-webui/open-webui` repo. Re-dispatching clobbers the same release's
   assets; it never moves an existing tag (the pinned `v0.11.4` stays on
   pristine upstream).
 - **ghcr.io pushes need a user-level token**: a fork's `GITHUB_TOKEN` cannot
