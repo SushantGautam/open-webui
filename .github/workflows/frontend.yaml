@@ -4,13 +4,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
 name: Frontend Build
 
+# Manual-only for this fork: upstream's push/PR triggers are removed (see
+# FORK.md - all CI is run on demand via the Actions tab).
 on:
-  push:
-    branches: [main, dev]
-    paths-ignore: ['backend/**', 'pyproject.toml', 'uv.lock']
-  pull_request:
-    branches: [main, dev]
-    paths-ignore: ['backend/**', 'pyproject.toml', 'uv.lock']
+  workflow_dispatch:
 
 concurrency:
   group: frontend-${{ github.ref }}

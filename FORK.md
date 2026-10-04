@@ -46,6 +46,25 @@ Images (per ref, per arch amd64/arm64):
 
 ### CI notes (fork-specific)
 
+- **All CI is manual + paused on this fork.** Upstream's push/PR triggers were
+  removed from every workflow (2026-10-04); each is `workflow_dispatch`-only
+  and **paused** (disable the pause via the Actions tab or
+  `gh workflow enable <file>` to use it):
+  - `frontend.yaml` (Format & Build + Unit Tests) — no inputs; dispatch on
+    `main`. Runs prettier/eslint/i18n + Vite build + vitest.
+  - `backend.yaml` (Ruff Format/Check) — no inputs.
+  - `release.yml` (upstream CHANGELOG→release + docker dispatch) — input
+    `ref` (branch/tag, e.g. `v0.11.5`); its `package.json` version becomes
+    the release tag. The push-only "package.json unchanged" abort gate was
+    dropped (dispatch is explicit intent); existing-release skip stays.
+  - `regression.yaml` (open-webui/tests suite) — input `pr_number`; a
+    `resolve` job looks the PR up and applies the upstream "required" gate
+    (against/from `dev` + version-titled PR).
+  - `issue-label.yaml` (labeler bot) — no inputs; paused as well.
+  Run anything you need from **Actions → workflow → Run workflow** (pick a
+  branch first; dispatch checks out the selected ref).
+
+
 - `release-artifacts.yml` (formerly `release-pypi.yml`) is **manual-only**
   (`workflow_dispatch`) and does **not publish to PyPI** (trusted publishing
   is registered to the upstream repo, so publishing from this fork fails with
