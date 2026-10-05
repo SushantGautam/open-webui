@@ -3369,6 +3369,7 @@ async def execute_tool_call_for_output(request, form_data, user, metadata, event
     params = {key: value for key, value in params.items() if key in allowed_params}
 
     try:
+
         async def invoke_tool():
             if direct_tool:
                 if not event_caller:
@@ -6022,6 +6023,7 @@ async def streaming_chat_response_handler(response, ctx):
                         allowed_params = spec.get('parameters', {}).get('properties', {}).keys()
                         params = {key: value for key, value in params.items() if key in allowed_params}
                         try:
+
                             async def invoke_tool():
                                 if direct_tool:
                                     return await event_caller(

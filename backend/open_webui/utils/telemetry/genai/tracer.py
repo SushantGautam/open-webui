@@ -89,9 +89,7 @@ class GenAITracer:
                 if span.is_recording():
                     safe_attrs = extractors.capture_attributes(attrs, self.config)
                     resolved = {
-                        semconv.attribute_key(key): value
-                        for key, value in safe_attrs.items()
-                        if value is not None
+                        semconv.attribute_key(key): value for key, value in safe_attrs.items() if value is not None
                     }
                     resolved.update(oi.attributes_for(kind))
                     if resolved:
