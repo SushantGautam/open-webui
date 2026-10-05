@@ -107,3 +107,12 @@ Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/te
 Test results: PASS — retrieval tests: `2 passed`; retrieval import: `retrieval import ok`; import lint: `All checks passed!`; diff check: passed.
 Deviations: NONE
 Next milestone: M8
+
+## M8 — Background vs. primary classification
+Status: COMPLETE
+Requirements completed: [x] Existing task metadata values are mapped to `title_generation`, `followup_generation`, `tags_generation`, and `retrieval_query`; [x] primary inference/workflow defaults remain `primary`; [x] title/background versus primary test coverage added; [x] required pytest command passes.
+Files changed: backend/open_webui/utils/telemetry/genai/purpose.py; backend/open_webui/utils/telemetry/genai/inference.py; backend/open_webui/test/apps/webui/utils/test_genai_purpose.py
+Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_purpose.py -v`; `WEBUI_SECRET_KEY=test-secret-key uv run python -c "import open_webui.routers.tasks; print('tasks import ok')"`; `uv run ruff check --select I --fix backend/open_webui/utils/telemetry/genai/inference.py backend/open_webui/test/apps/webui/utils/test_genai_purpose.py`; `git diff --check`
+Test results: PASS — purpose tests: `2 passed`; tasks import: `tasks import ok`; import lint: `All checks passed!`; diff check: passed.
+Deviations: NONE
+Next milestone: M9
