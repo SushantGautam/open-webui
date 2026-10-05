@@ -125,3 +125,12 @@ Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/te
 Test results: PASS — `24 passed in 0.08s`; import lint: `All checks passed!`; diff check: passed.
 Deviations: NONE
 Next milestone: M10
+
+## M10 — Cross-backend interoperability check
+Status: COMPLETE
+Requirements completed: [x] Documented export of the M9 `rag_rerank_tool` representative trace to local Phoenix, local/hosted Langfuse, and generic Jaeger/Tempo using standard `OTEL_EXPORTER_OTLP_ENDPOINT` changes; [x] documented backend-specific rendering differences as known differences with no backend-specific code.
+Files changed: backend/open_webui/utils/telemetry/genai/README.md; EXECUTION_STATE.md
+Tests run: `test -s backend/open_webui/utils/telemetry/genai/README.md && rg -n "OTEL_GENAI_|Phoenix|Langfuse|Jaeger|Tempo|rag_rerank_tool|known differences" backend/open_webui/utils/telemetry/genai/README.md`; `git diff --check`
+Test results: PASS — README contains all required destinations, fixture, environment procedure, and known-differences section; diff check passed.
+Deviations: NONE
+Next milestone: M11
