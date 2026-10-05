@@ -143,3 +143,12 @@ Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/te
 Test results: PASS — performance tests `3 passed in 0.12s`; regression/conformance tests `31 passed in 0.08s`; Ruff: `All checks passed!`; diff check passed.
 Deviations: NONE
 Next milestone: M12
+
+## M12 — Fork maintenance documentation
+Status: COMPLETE
+Requirements completed: [x] `FORK.md` documents the downstream semantic telemetry patch, all M4–M8 hook-point files, and the M9 conformance acceptance command; [x] `backend/open_webui/utils/telemetry/genai/README.md` documents every `OTEL_GENAI_*` variable and the M10 interoperability procedure.
+Files changed: FORK.md; backend/open_webui/utils/telemetry/genai/README.md; EXECUTION_STATE.md
+Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_conformance.py -v`; `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_performance.py -q`; `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_telemetry_setup.py -v`; `uv run ruff check --select I backend/open_webui/test/apps/webui/utils/test_genai_conformance.py backend/open_webui/test/apps/webui/utils/test_genai_performance.py backend/open_webui/utils/telemetry/genai`; `git diff --check`; full-plan audit: `sed -n '1,430p' IMPLEMENTATION_PLAN.md`
+Test results: PASS — conformance `24 passed in 0.10s`; performance `3 passed in 0.10s`; locked telemetry setup `3 passed, 1 warning in 3.32s`; import lint `All checks passed!`; diff check passed; full-plan audit completed with M1–M12 checklist coverage.
+Deviations: NONE
+Next milestone: NONE (plan complete)
