@@ -80,3 +80,12 @@ Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/te
 Test results: PASS — workflow tests: `3 passed`; main import: `main import ok`; import lint: `All checks passed!`; diff check: passed. Full-file Ruff reports pre-existing unrelated violations in `main.py`.
 Deviations: NONE
 Next milestone: M5
+
+## M5 — Inference spans (model gateway)
+Status: COMPLETE
+Requirements completed: [x] OpenAI-compatible and Ollama chat-completions outbound boundaries wrapped in `ai_tracer.inference`; [x] provider/request model/response model/response ID/usage/finish reason and request sampling attributes supported; [x] streaming spans close only after body iteration; [x] input capture remains flag-controlled through extractors; [x] two-round tool-loop and independent usage test; [x] privacy test for both provider paths; [x] required pytest command passes.
+Files changed: backend/open_webui/routers/openai.py; backend/open_webui/routers/ollama.py; backend/open_webui/utils/telemetry/genai/tracer.py; backend/open_webui/utils/telemetry/genai/inference.py; backend/open_webui/test/apps/webui/utils/test_genai_inference.py
+Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_inference.py -v`; `WEBUI_SECRET_KEY=test-secret-key uv run python -c "import open_webui.routers.openai; import open_webui.routers.ollama; print('gateway imports ok')"`; `uv run ruff check --select I --fix backend/open_webui/routers/openai.py backend/open_webui/routers/ollama.py backend/open_webui/utils/telemetry/genai/inference.py backend/open_webui/test/apps/webui/utils/test_genai_inference.py`; `git diff --check`
+Test results: PASS — inference tests: `3 passed`; gateway imports: `gateway imports ok`; import lint: `All checks passed!`; diff check: passed. Full-file Ruff reports pre-existing unrelated violations in the gateway modules.
+Deviations: NONE
+Next milestone: M6
