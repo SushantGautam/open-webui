@@ -53,3 +53,12 @@ Tests run: `uv sync`; `uv pip install --python .venv/bin/python -r backend/requi
 Test results: PASS — required telemetry test: `3 passed, 1 warning in 2.19s`; existing environment test: `1 passed`; Ruff: `All checks passed!`; diff check: passed.
 Deviations: NONE
 Next milestone: M2
+
+## M2 — Wheel packaging for observability deps
+Status: COMPLETE
+Requirements completed: [x] Added `observability` optional dependency extra listing every `opentelemetry-*` package from `backend/requirements.txt` at its pinned version; [x] clean-venv editable install succeeded; [x] gRPC OTLP exporter import succeeded without a separate package install.
+Files changed: pyproject.toml; uv.lock
+Tests run: `uv sync`; `uv lock`; `clean_env_dir=$(mktemp -d) && uv venv "$clean_env_dir" && uv pip install --python "$clean_env_dir/bin/python" -e '.[observability]' && "$clean_env_dir/bin/python" -c "import opentelemetry.exporter.otlp.proto.grpc.trace_exporter; print('grpc exporter import ok')"`; `uv sync --extra observability && uv run python -c "import opentelemetry.exporter.otlp.proto.grpc.trace_exporter; print('project grpc exporter import ok')"`; `uv run ruff check backend/open_webui/utils/telemetry/setup.py backend/open_webui/test/apps/webui/utils/test_telemetry_setup.py`; `git diff --check`
+Test results: PASS — clean venv installed `open-webui==0.11.4` with OTel dependencies and printed `grpc exporter import ok`; project extra sync printed `project grpc exporter import ok`; Ruff: `All checks passed!`; diff check: passed.
+Deviations: NONE
+Next milestone: M3
