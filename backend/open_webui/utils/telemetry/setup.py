@@ -31,7 +31,7 @@ def setup(app: FastAPI, db_engine: Engine):
         trace.set_tracer_provider(TracerProvider(resource=resource))
 
         # Add basic auth header only if both username and password are not empty
-        headers = []
+        headers = None
         if OTEL_BASIC_AUTH_USERNAME and OTEL_BASIC_AUTH_PASSWORD:
             auth_string = f'{OTEL_BASIC_AUTH_USERNAME}:{OTEL_BASIC_AUTH_PASSWORD}'
             auth_header = b64encode(auth_string.encode()).decode()
