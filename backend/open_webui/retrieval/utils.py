@@ -39,15 +39,15 @@ from open_webui.env import (
 )
 from open_webui.models.access_grants import AccessGrants
 from open_webui.models.chats import Chats
+from open_webui.models.config import Config
 from open_webui.models.files import Files
 from open_webui.models.folders import Folders
 from open_webui.models.knowledge import Knowledges
 from open_webui.models.notes import Notes
-from open_webui.models.config import Config
 from open_webui.models.users import UserModel
+from open_webui.retrieval.external import retrieve_external_knowledge
 from open_webui.retrieval.loaders.youtube import YoutubeLoader
 from open_webui.retrieval.vector.async_client import ASYNC_VECTOR_DB_CLIENT
-from open_webui.retrieval.external import retrieve_external_knowledge
 from open_webui.retrieval.vector.factory import get_vector_db_client
 from open_webui.retrieval.vector.main import GetResult, SearchResult
 from open_webui.retrieval.web.utils import get_web_loader
@@ -55,8 +55,11 @@ from open_webui.utils.access_control.files import get_owner_accessible_folder_fi
 from open_webui.utils.access_control.folders import has_folder_access
 from open_webui.utils.headers import get_json_bearer_headers, include_user_info_headers
 from open_webui.utils.misc import get_content_from_message, get_message_list
+from open_webui.utils.telemetry.genai.retrieval import instrument_reranker, traced_retrieval
+from open_webui.utils.telemetry.genai.tracer import GenAITracer
 
 log = logging.getLogger(__name__)
+ai_tracer = GenAITracer()
 
 
 from typing import Any
@@ -252,7 +255,7 @@ async def get_content_from_url(request, url: str) -> str:
 
 
 def _get_content_from_url_sync(request, url: str, loader_config):
-    from open_webui.retrieval.web.utils import validate_url, get_ssrf_safe_requests_session
+    from open_webui.retrieval.web.utils import get_ssrf_safe_requests_session, validate_url
 
     # Validate URL before making any request (blocks private IPs, non-HTTP, filter list)
     validate_url(url)
@@ -1272,9 +1275,9 @@ def get_reranking_function(reranking_engine, reranking_model, reranking_function
     if reranking_function is None:
         return None
     if reranking_engine == 'external':
-        return lambda query, documents, user=None: reranking_function.predict(
+        return instrument_reranker(tracer=ai_tracer, reranking_function=lambda query, documents, user=None: reranking_function.predict(
             [(query, doc.page_content) for doc in documents], user=user
-        )
+        ))
     else:
 
         def predict(query, documents, user=None):
@@ -1283,7 +1286,7 @@ def get_reranking_function(reranking_engine, reranking_model, reranking_function
                     [(query, doc.page_content) for doc in documents], batch_size=int(reranking_batch_size)
                 )
 
-        return predict
+        return instrument_reranker(tracer=ai_tracer, reranking_function=predict)
 
 
 # UUIDs, SHA-256 digests, and prefixed variants thereof all fit [A-Za-z0-9_-].
@@ -1367,6 +1370,7 @@ def filter_source_metadata(metadata: dict) -> dict:
     return {key: metadata[key] for key in RAG_SOURCE_METADATA_KEYS if metadata.get(key) is not None}
 
 
+@traced_retrieval(ai_tracer)
 async def get_sources_from_items(
     request,
     items,

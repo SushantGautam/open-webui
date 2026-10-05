@@ -36,6 +36,12 @@ GEN_AI_EMBEDDINGS = _official('GEN_AI_EMBEDDINGS', 'gen_ai.embeddings')
 OPENWEBUI_MESSAGE_ID = 'openwebui.message.id'
 OPENWEBUI_OPERATION_PURPOSE = 'openwebui.operation.purpose'
 OPENWEBUI_TOOL_TYPE = 'openwebui.tool.type'
+OPENWEBUI_RETRIEVAL_MODE = 'openwebui.retrieval.mode'
+OPENWEBUI_RETRIEVAL_TOP_K = 'openwebui.retrieval.top_k'
+OPENWEBUI_RETRIEVAL_THRESHOLD = 'openwebui.retrieval.threshold'
+OPENWEBUI_RETRIEVAL_CANDIDATE_COUNT = 'openwebui.retrieval.candidate_count'
+OPENWEBUI_RETRIEVAL_SELECTED_COUNT = 'openwebui.retrieval.selected_count'
+OPENWEBUI_RETRIEVAL_DATA_SOURCE = 'openwebui.retrieval.data_source'
 OPENINFERENCE_SPAN_KIND = 'openinference.span.kind'
 
 ALIASES = {
@@ -65,6 +71,12 @@ ALIASES = {
     'message_id': OPENWEBUI_MESSAGE_ID,
     'purpose': OPENWEBUI_OPERATION_PURPOSE,
     'tool_type': GEN_AI_TOOL_TYPE,
+    'retrieval_mode': OPENWEBUI_RETRIEVAL_MODE,
+    'top_k': OPENWEBUI_RETRIEVAL_TOP_K,
+    'threshold': OPENWEBUI_RETRIEVAL_THRESHOLD,
+    'candidate_count': OPENWEBUI_RETRIEVAL_CANDIDATE_COUNT,
+    'selected_count': OPENWEBUI_RETRIEVAL_SELECTED_COUNT,
+    'data_source': OPENWEBUI_RETRIEVAL_DATA_SOURCE,
 }
 
 
