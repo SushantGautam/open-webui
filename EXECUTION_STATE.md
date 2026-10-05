@@ -116,3 +116,12 @@ Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/te
 Test results: PASS — purpose tests: `2 passed`; tasks import: `tasks import ok`; import lint: `All checks passed!`; diff check: passed.
 Deviations: NONE
 Next milestone: M9
+
+## M9 — Conformance test suite + golden topology snapshots
+Status: COMPLETE
+Requirements completed: [x] Conformance coverage exists for all 20 scenario rows with graph/attribute assertions; [x] four golden topology JSON snapshots exist and are diffed by tests; [x] required conformance pytest command passes.
+Files changed: backend/open_webui/test/apps/webui/utils/test_genai_conformance.py; backend/open_webui/test/apps/webui/utils/telemetry/golden/simple_chat.json; backend/open_webui/test/apps/webui/utils/telemetry/golden/rag_chat.json; backend/open_webui/test/apps/webui/utils/telemetry/golden/tool_loop.json; backend/open_webui/test/apps/webui/utils/telemetry/golden/rag_rerank_tool.json
+Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_conformance.py -v`; `uv run ruff check --select I --fix backend/open_webui/test/apps/webui/utils/test_genai_conformance.py`; `git diff --check`
+Test results: PASS — `24 passed in 0.08s`; import lint: `All checks passed!`; diff check: passed.
+Deviations: NONE
+Next milestone: M10

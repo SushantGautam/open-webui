@@ -1,0 +1,5 @@
+[
+  {"name": "embedding", "parent": "retrieval", "attributes": ["openinference.span.kind"]},
+  {"name": "retrieval", "parent": "invoke_workflow open-webui.chat", "attributes": ["gen_ai.operation.name", "gen_ai.retrieval.documents", "openinference.span.kind", "openwebui.retrieval.top_k"]},
+  {"name": "invoke_workflow open-webui.chat", "parent": null, "attributes": ["gen_ai.operation.name", "openinference.span.kind", "openwebui.operation.purpose"]}
+]
