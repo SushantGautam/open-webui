@@ -1,5 +1,6 @@
 from collections.abc import Awaitable, Callable
 
+from open_webui.utils.telemetry.genai.purpose import purpose_for_task
 from open_webui.utils.telemetry.genai.streaming import wrap_stream
 
 
@@ -10,6 +11,7 @@ async def traced_inference(
     request_payload: dict,
     call: Callable[[], Awaitable],
 ):
+    metadata = request_payload.get('metadata') or {}
     with tracer.inference(
         'chat_completion',
         provider=provider,
@@ -19,6 +21,7 @@ async def traced_inference(
         top_p=request_payload.get('top_p'),
         max_tokens=request_payload.get('max_tokens', request_payload.get('max_completion_tokens')),
         seed=request_payload.get('seed'),
+        purpose=purpose_for_task(metadata.get('task')),
         _defer_end=True,
     ) as span:
         response = await call()
