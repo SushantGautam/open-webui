@@ -98,3 +98,12 @@ Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/te
 Test results: PASS — tool tests: `3 passed`; middleware import: `middleware import ok`; import lint: `All checks passed!`; diff check: passed.
 Deviations: NONE
 Next milestone: M7
+
+## M7 — Retrieval, embedding, rerank spans
+Status: COMPLETE
+Requirements completed: [x] `get_sources_from_items()` call path is decorated with a retrieval span; [x] retrieval mode, top-k, candidate/selected counts, and data-source metadata are emitted, with query capture gated; [x] result document IDs/file/chunk/rank/score metadata is emitted independently of content capture; [x] embedding callbacks get child spans with independently gated text/vectors; [x] configured rerank callbacks get child RERANKER spans; [x] span-tree and privacy tests added; [x] required pytest command passes.
+Files changed: backend/open_webui/retrieval/utils.py; backend/open_webui/utils/telemetry/genai/semconv.py; backend/open_webui/utils/telemetry/genai/retrieval.py; backend/open_webui/test/apps/webui/utils/test_genai_retrieval.py
+Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_retrieval.py -v`; `WEBUI_SECRET_KEY=test-secret-key uv run python -c "import open_webui.retrieval.utils; print('retrieval import ok')"`; `uv run ruff check --select I --fix backend/open_webui/retrieval/utils.py backend/open_webui/utils/telemetry/genai/retrieval.py backend/open_webui/test/apps/webui/utils/test_genai_retrieval.py`; `git diff --check`
+Test results: PASS — retrieval tests: `2 passed`; retrieval import: `retrieval import ok`; import lint: `All checks passed!`; diff check: passed.
+Deviations: NONE
+Next milestone: M8
