@@ -115,8 +115,8 @@ from open_webui.utils.misc import (
     get_last_user_message_item,
     get_message_list,
     get_output_text,
-    get_response_error_detail,
     get_reasoning_details,
+    get_response_error_detail,
     get_system_message,
     is_raster_image_content_type,
     is_string_allowed,
@@ -141,6 +141,8 @@ from open_webui.utils.task import (
     rag_template,
     tools_function_calling_generation_template,
 )
+from open_webui.utils.telemetry.genai.tools import traced_tool
+from open_webui.utils.telemetry.genai.tracer import GenAITracer
 from open_webui.utils.tools import (
     build_tool_server_headers,
     get_attached_knowledge,
@@ -153,6 +155,7 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
+ai_tracer = GenAITracer()
 
 
 def _is_tool_result_error(value: Any) -> bool:
@@ -1445,22 +1448,31 @@ async def chat_completion_tools_handler(
                     allowed_params = spec.get('parameters', {}).get('properties', {}).keys()
                     tool_function_params = {k: v for k, v in tool_function_params.items() if k in allowed_params}
 
-                    if tool.get('direct', False):
-                        tool_result = await event_caller(
-                            {
-                                'type': 'execute:tool',
-                                'data': {
-                                    'id': str(uuid4()),
-                                    'name': tool_function_name,
-                                    'params': tool_function_params,
-                                    'server': tool.get('server', {}),
-                                    'session_id': metadata.get('session_id', None),
-                                },
-                            }
-                        )
-                    else:
-                        tool_function = tool['callable']
-                        tool_result = await tool_function(**tool_function_params)
+                    async def invoke_tool():
+                        if direct_tool:
+                            return await event_caller(
+                                {
+                                    'type': 'execute:tool',
+                                    'data': {
+                                        'id': str(uuid4()),
+                                        'name': tool_function_name,
+                                        'params': tool_function_params,
+                                        'server': tool.get('server', {}),
+                                        'session_id': metadata.get('session_id', None),
+                                    },
+                                }
+                            )
+                        return await tool['callable'](**tool_function_params)
+
+                    tool_result = await traced_tool(
+                        ai_tracer,
+                        name=tool_function_name,
+                        call_id=tool_call.get('id') or tool_call.get('call_id'),
+                        tool_type=tool_type,
+                        arguments=tool_function_params,
+                        direct=direct_tool,
+                        call=invoke_tool,
+                    )
 
                 except Exception as e:
                     tool_result = {'error': str(e)}
@@ -3357,11 +3369,11 @@ async def execute_tool_call_for_output(request, form_data, user, metadata, event
     params = {key: value for key, value in params.items() if key in allowed_params}
 
     try:
-        if direct_tool:
-            if not event_caller:
-                result = 'Error: Browser session is not connected for this direct tool.'
-            else:
-                result = await event_caller(
+        async def invoke_tool():
+            if direct_tool:
+                if not event_caller:
+                    return 'Error: Browser session is not connected for this direct tool.'
+                return await event_caller(
                     {
                         'type': 'execute:tool',
                         'data': {
@@ -3373,7 +3385,6 @@ async def execute_tool_call_for_output(request, form_data, user, metadata, event
                         },
                     }
                 )
-        else:
             function = await get_updated_tool_function(
                 function=tool['callable'],
                 extra_params={
@@ -3381,7 +3392,17 @@ async def execute_tool_call_for_output(request, form_data, user, metadata, event
                     '__files__': metadata.get('files', []),
                 },
             )
-            result = await function(**params)
+            return await function(**params)
+
+        result = await traced_tool(
+            ai_tracer,
+            name=name,
+            call_id=tool_call.get('id', ''),
+            tool_type=tool_type,
+            arguments=params,
+            direct=direct_tool,
+            call=invoke_tool,
+        )
     except Exception as e:
         result = {'error': str(e)}
 
@@ -6001,20 +6022,20 @@ async def streaming_chat_response_handler(response, ctx):
                         allowed_params = spec.get('parameters', {}).get('properties', {}).keys()
                         params = {key: value for key, value in params.items() if key in allowed_params}
                         try:
-                            if direct_tool:
-                                result = await event_caller(
-                                    {
-                                        'type': 'execute:tool',
-                                        'data': {
-                                            'id': str(uuid4()),
-                                            'name': name,
-                                            'params': params,
-                                            'server': tool.get('server', {}),
-                                            'session_id': metadata.get('session_id'),
-                                        },
-                                    }
-                                )
-                            else:
+                            async def invoke_tool():
+                                if direct_tool:
+                                    return await event_caller(
+                                        {
+                                            'type': 'execute:tool',
+                                            'data': {
+                                                'id': str(uuid4()),
+                                                'name': name,
+                                                'params': params,
+                                                'server': tool.get('server', {}),
+                                                'session_id': metadata.get('session_id'),
+                                            },
+                                        }
+                                    )
                                 function = await get_updated_tool_function(
                                     function=tool['callable'],
                                     extra_params={
@@ -6022,7 +6043,17 @@ async def streaming_chat_response_handler(response, ctx):
                                         '__files__': metadata.get('files', []),
                                     },
                                 )
-                                result = await function(**params)
+                                return await function(**params)
+
+                            result = await traced_tool(
+                                ai_tracer,
+                                name=name,
+                                call_id=tool_call.get('id', ''),
+                                tool_type=tool_type,
+                                arguments=params,
+                                direct=direct_tool,
+                                call=invoke_tool,
+                            )
                         except Exception as e:
                             result = {'error': str(e)}
                         return params, result, tool, tool_type, direct_tool

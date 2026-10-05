@@ -89,3 +89,12 @@ Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/te
 Test results: PASS — inference tests: `3 passed`; gateway imports: `gateway imports ok`; import lint: `All checks passed!`; diff check: passed. Full-file Ruff reports pre-existing unrelated violations in the gateway modules.
 Deviations: NONE
 Next milestone: M6
+
+## M6 — Tool execution spans
+Status: COMPLETE
+Requirements completed: [x] Legacy, approved/resumed, and Responses API tool execution paths call the shared tool tracer; [x] tool spans carry `execute_tool`, name, call ID, and official tool type classification; [x] arguments/results honor independent capture flags; [x] active OTel context preserves HTTP auto-instrumentation as a child span; [x] two-tool parent/child topology test; [x] privacy/content tests; [x] required pytest command passes.
+Files changed: backend/open_webui/utils/middleware.py; backend/open_webui/utils/telemetry/genai/semconv.py; backend/open_webui/utils/telemetry/genai/tools.py; backend/open_webui/test/apps/webui/utils/test_genai_tools.py
+Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_tools.py -v`; `WEBUI_SECRET_KEY=test-secret-key uv run python -c "import open_webui.utils.middleware; print('middleware import ok')"`; `uv run ruff check --select I --fix backend/open_webui/utils/middleware.py backend/open_webui/test/apps/webui/utils/test_genai_tools.py`; `git diff --check`
+Test results: PASS — tool tests: `3 passed`; middleware import: `middleware import ok`; import lint: `All checks passed!`; diff check: passed.
+Deviations: NONE
+Next milestone: M7
