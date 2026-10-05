@@ -1275,9 +1275,12 @@ def get_reranking_function(reranking_engine, reranking_model, reranking_function
     if reranking_function is None:
         return None
     if reranking_engine == 'external':
-        return instrument_reranker(tracer=ai_tracer, reranking_function=lambda query, documents, user=None: reranking_function.predict(
-            [(query, doc.page_content) for doc in documents], user=user
-        ))
+        return instrument_reranker(
+            tracer=ai_tracer,
+            reranking_function=lambda query, documents, user=None: reranking_function.predict(
+                [(query, doc.page_content) for doc in documents], user=user
+            ),
+        )
     else:
 
         def predict(query, documents, user=None):

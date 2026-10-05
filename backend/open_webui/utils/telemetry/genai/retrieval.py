@@ -50,16 +50,16 @@ def traced_retrieval(tracer: GenAITracer):
                 top_k=values.get('k'),
                 candidate_count=len(values.get('items') or []),
                 retrieval_mode='hybrid' if values.get('hybrid_search') else 'vector',
-            data_source=[
-                item.get('collection_name') for item in values.get('items') or [] if item.get('collection_name')
-            ],
+                data_source=[
+                    item.get('collection_name') for item in values.get('items') or [] if item.get('collection_name')
+                ],
             ) as span:
                 if 'embedding_function' in values:
                     values['embedding_function'] = instrument_embedding(tracer, values['embedding_function'])
                 result = await function(*bound.args, **bound.kwargs)
                 if span.is_recording() and isinstance(result, list):
                     documents = []
-                    for rank, source in enumerate(result[:tracer.config.retrieval_max_documents], 1):
+                    for rank, source in enumerate(result[: tracer.config.retrieval_max_documents], 1):
                         metadata = source.get('metadata') or {}
                         distances = source.get('distances') or []
                         entry = {

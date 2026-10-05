@@ -60,6 +60,7 @@ async def build_scenario(name, tracer):
                 call=successful_response,
             )
         elif name == 'streaming':
+
             async def stream():
                 yield 'first'
                 yield 'final'
@@ -90,6 +91,7 @@ async def build_scenario(name, tracer):
             with tracer.inference('chat_completion'):
                 count = 1 if name != 'multiple_tools' else 2
                 for index in range(count):
+
                     async def call(index=index):
                         return {'result': index}
 
@@ -110,10 +112,15 @@ async def build_scenario(name, tracer):
                     call=successful_response,
                 )
         elif name == 'multi_round':
-            await traced_inference(tracer, provider='openai-compatible', request_payload={'model': 'model'}, call=successful_response)
-            await traced_inference(tracer, provider='openai-compatible', request_payload={'model': 'model'}, call=successful_response)
+            await traced_inference(
+                tracer, provider='openai-compatible', request_payload={'model': 'model'}, call=successful_response
+            )
+            await traced_inference(
+                tracer, provider='openai-compatible', request_payload={'model': 'model'}, call=successful_response
+            )
         elif name in {'knowledge', 'hybrid', 'rerank', 'embedding', 'retrieval_failure'}:
             with tracer.retrieval('retrieval', operation_name='retrieval', retrieval_query='query', top_k=3):
+
                 async def embedding(query, prefix=None):
                     return [[0.1, 0.2]]
 
@@ -137,13 +144,18 @@ async def build_scenario(name, tracer):
                         raise RuntimeError('retrieval failed')
                 if name in {'knowledge', 'hybrid', 'rerank'}:
                     current = trace.get_current_span()
-                    current.set_attribute('gen_ai.retrieval.documents', ['{"document_id":"doc-1","rank":1,"score":0.9}'])
+                    current.set_attribute(
+                        'gen_ai.retrieval.documents', ['{"document_id":"doc-1","rank":1,"score":0.9}']
+                    )
         elif name == 'llm_failure':
+
             async def fail():
                 raise ValueError('llm failed')
 
             with pytest.raises(ValueError):
-                await traced_inference(tracer, provider='openai-compatible', request_payload={'model': 'model'}, call=fail)
+                await traced_inference(
+                    tracer, provider='openai-compatible', request_payload={'model': 'model'}, call=fail
+                )
         elif name == 'no_content':
             await traced_inference(
                 tracer,
@@ -157,9 +169,25 @@ async def build_scenario(name, tracer):
 @pytest.mark.parametrize(
     'scenario',
     [
-        'simple_chat', 'streaming', 'cancelled', 'openai', 'ollama', 'one_tool', 'multiple_tools', 'multi_round',
-        'knowledge', 'hybrid', 'rerank', 'embedding', 'mcp_tool', 'background_title', 'followup', 'no_chat_id',
-        'llm_failure', 'retrieval_failure', 'no_content',
+        'simple_chat',
+        'streaming',
+        'cancelled',
+        'openai',
+        'ollama',
+        'one_tool',
+        'multiple_tools',
+        'multi_round',
+        'knowledge',
+        'hybrid',
+        'rerank',
+        'embedding',
+        'mcp_tool',
+        'background_title',
+        'followup',
+        'no_chat_id',
+        'llm_failure',
+        'retrieval_failure',
+        'no_content',
     ],
 )
 async def test_conformance_scenarios(scenario):
