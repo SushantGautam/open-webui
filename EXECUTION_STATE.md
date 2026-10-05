@@ -1,0 +1,55 @@
+# Execution State
+
+Agent-updated. Do not hand-edit except to fix a factual error. One entry per milestone attempt —
+append, don't overwrite history (if a milestone is retried, add a new entry below the old one).
+
+Format per entry:
+
+```
+## M<N> — <milestone title>
+Status: NOT_STARTED | IN_PROGRESS | COMPLETE | BLOCKED
+Requirements completed: <list checklist lines from IMPLEMENTATION_PLAN.md with [x]/[ ]>
+Files changed: <paths>
+Tests run: <exact command(s)>
+Test results: <pass/fail summary, paste key output lines>
+Deviations: NONE | <explicit deviation + reason>
+Next milestone: M<N+1> | NONE (plan complete)
+```
+
+If BLOCKED, also include:
+
+```
+Blocked reason: <precise statement>
+Evidence: <exact command run + exact error output>
+```
+
+---
+
+## M1 — OTLP transport hygiene
+Status: NOT_STARTED
+Requirements completed: (none yet)
+Files changed: (none yet)
+Tests run: (none yet)
+Test results: (none yet)
+Deviations: NONE
+Next milestone: M1
+
+## M1 — OTLP transport hygiene
+Status: BLOCKED
+Requirements completed: [ ] All M1 checklist lines remain unverified because the required test command cannot execute in the current environment.
+Files changed: backend/open_webui/utils/telemetry/setup.py; backend/open_webui/test/apps/webui/utils/test_telemetry_setup.py
+Tests run: `pytest backend/open_webui/test/apps/webui/utils/test_telemetry_setup.py -v`
+Test results: FAIL — 3 failed. Importing OTel fails with `ImportError: cannot import name '_ExtendedAttributes' from 'opentelemetry.util.types'`; importing `open_webui.env` also fails with `SystemExit: WEBUI_SECRET_KEY is not set`.
+Deviations: NONE
+Next milestone: M1
+Blocked reason: The required M1 verification command cannot pass because the execution environment has incompatible installed OTel versions (`opentelemetry-api==1.45.0`, `opentelemetry-sdk==1.39.1`, `opentelemetry-exporter-otlp==1.39.1`, while `backend/requirements.txt` pins the OTel core packages to `1.42.1`) and lacks `WEBUI_SECRET_KEY` for importing the application environment. Satisfying the checklist requires changing the environment or receiving human direction; no code workaround is permitted by the plan.
+Evidence: `python -m pip show opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp opentelemetry-semantic-conventions` reported versions `1.45.0`, `1.39.1`, `1.39.1`, and `0.60b1`, respectively. `pytest backend/open_webui/test/apps/webui/utils/test_telemetry_setup.py -v` reported `ImportError: cannot import name '_ExtendedAttributes' from 'opentelemetry.util.types'` and `SystemExit: WEBUI_SECRET_KEY is not set`.
+
+## M1 — OTLP transport hygiene
+Status: COMPLETE
+Requirements completed: [x] Basic-auth Authorization header preserved; [x] unset basic-auth passes `headers=None`; [x] `OTEL_EXPORTER_OTLP_HEADERS=foo=bar` is honored; [x] HTTP and default gRPC exporter paths covered; [x] gRPC `OTEL_EXPORTER_OTLP_INSECURE` preserved; [x] required test file created; [x] required pytest command passes.
+Files changed: backend/open_webui/utils/telemetry/setup.py; backend/open_webui/test/apps/webui/utils/test_telemetry_setup.py
+Tests run: `uv sync`; `uv pip install --python .venv/bin/python -r backend/requirements.txt`; `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_telemetry_setup.py -v`; `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/tests/test_env.py -v`; `uv run ruff check backend/open_webui/utils/telemetry/setup.py backend/open_webui/test/apps/webui/utils/test_telemetry_setup.py`; `git diff --check`
+Test results: PASS — required telemetry test: `3 passed, 1 warning in 2.19s`; existing environment test: `1 passed`; Ruff: `All checks passed!`; diff check: passed.
+Deviations: NONE
+Next milestone: M2
