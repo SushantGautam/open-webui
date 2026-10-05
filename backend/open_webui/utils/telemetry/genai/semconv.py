@@ -20,6 +20,7 @@ GEN_AI_TOOL_NAME = _official('GEN_AI_TOOL_NAME', 'gen_ai.tool.name')
 GEN_AI_TOOL_CALL_ID = _official('GEN_AI_TOOL_CALL_ID', 'gen_ai.tool.call.id')
 GEN_AI_TOOL_CALL_ARGUMENTS = _official('GEN_AI_TOOL_CALL_ARGUMENTS', 'gen_ai.tool.call.arguments')
 GEN_AI_TOOL_CALL_RESULT = _official('GEN_AI_TOOL_CALL_RESULT', 'gen_ai.tool.call.result')
+GEN_AI_TOOL_TYPE = _official('GEN_AI_TOOL_TYPE', 'gen_ai.tool.type')
 GEN_AI_RETRIEVAL_QUERY_TEXT = _official('GEN_AI_RETRIEVAL_QUERY_TEXT', 'gen_ai.retrieval.query.text')
 GEN_AI_RETRIEVAL_DOCUMENTS = _official('GEN_AI_RETRIEVAL_DOCUMENTS', 'gen_ai.retrieval.documents')
 GEN_AI_INPUT_MESSAGES = _official('GEN_AI_INPUT_MESSAGES', 'gen_ai.input.messages')
@@ -63,7 +64,7 @@ ALIASES = {
     'embedding_vectors': GEN_AI_EMBEDDINGS,
     'message_id': OPENWEBUI_MESSAGE_ID,
     'purpose': OPENWEBUI_OPERATION_PURPOSE,
-    'tool_type': OPENWEBUI_TOOL_TYPE,
+    'tool_type': GEN_AI_TOOL_TYPE,
 }
 
 
