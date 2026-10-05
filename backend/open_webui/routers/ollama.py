@@ -46,10 +46,13 @@ from open_webui.utils.payload import (
     apply_system_prompt_to_body,
 )
 from open_webui.utils.session_pool import cleanup_response, get_client_timeout, get_session, stream_wrapper
+from open_webui.utils.telemetry.genai.inference import traced_inference
+from open_webui.utils.telemetry.genai.tracer import GenAITracer
 from pydantic import BaseModel, ConfigDict, validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)
+ai_tracer = GenAITracer()
 
 # Headers that become stale after aiohttp auto-decompresses the upstream
 # response body.  Forwarding them verbatim causes desktop / programmatic
@@ -94,7 +97,7 @@ async def send_get_request(
         return None
 
 
-async def send_request(
+async def _send_request(
     url: str,
     method: str = 'POST',
     *,
@@ -195,6 +198,63 @@ async def send_request(
     finally:
         if not streaming:
             await cleanup_response(r)
+
+
+async def send_request(
+    url: str,
+    method: str = 'POST',
+    *,
+    payload: Union[str, bytes | None] = None,
+    key: str | None = None,
+    user: UserModel = None,
+    stream: bool = False,
+    passthrough: bool = False,
+    content_type: str | None = None,
+    metadata: dict | None = None,
+    api_config: dict | None = None,
+    request: Request | None = None,
+):
+    if '/chat/completions' not in url:
+        return await _send_request(
+            url,
+            method,
+            payload=payload,
+            key=key,
+            user=user,
+            stream=stream,
+            passthrough=passthrough,
+            content_type=content_type,
+            metadata=metadata,
+            api_config=api_config,
+            request=request,
+        )
+
+    try:
+        request_payload = JSONCodec.loads(payload) if isinstance(payload, (str, bytes)) else (payload or {})
+    except Exception:
+        request_payload = {}
+
+    async def call():
+        return await _send_request(
+            url,
+            method,
+            payload=payload,
+            key=key,
+            user=user,
+            stream=stream,
+            passthrough=passthrough,
+            content_type=content_type,
+            metadata=metadata,
+            api_config=api_config,
+            request=request,
+        )
+
+    return await traced_inference(
+        ai_tracer,
+        provider='ollama',
+        request_payload=request_payload,
+        call=call,
+    )
 
 
 def get_api_key(idx, url, configs):

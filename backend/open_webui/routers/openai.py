@@ -56,10 +56,13 @@ from open_webui.utils.session_pool import (
     get_session,
     stream_wrapper,
 )
+from open_webui.utils.telemetry.genai.inference import traced_inference
+from open_webui.utils.telemetry.genai.tracer import GenAITracer
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)
+ai_tracer = GenAITracer()
 
 
 ##########################################
@@ -1485,6 +1488,24 @@ def convert_responses_result(response: dict) -> dict:
 
 @router.post('/chat/completions')
 async def generate_chat_completion(
+    request: Request,
+    form_data: dict,
+    user=Depends(get_verified_user),
+):
+    request_payload = dict(form_data)
+
+    async def call():
+        return await _generate_chat_completion(request, form_data, user)
+
+    return await traced_inference(
+        ai_tracer,
+        provider='openai-compatible',
+        request_payload=request_payload,
+        call=call,
+    )
+
+
+async def _generate_chat_completion(
     request: Request,
     form_data: dict,
     user=Depends(get_verified_user),

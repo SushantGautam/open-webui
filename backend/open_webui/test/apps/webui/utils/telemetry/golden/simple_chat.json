@@ -1,0 +1,4 @@
+[
+  {"name": "chat_completion", "parent": "invoke_workflow open-webui.chat", "attributes": ["gen_ai.provider.name", "gen_ai.request.model", "gen_ai.response.finish_reasons", "gen_ai.response.id", "gen_ai.response.model", "gen_ai.usage.input_tokens", "gen_ai.usage.output_tokens", "openinference.span.kind", "openwebui.operation.purpose"]},
+  {"name": "invoke_workflow open-webui.chat", "parent": null, "attributes": ["gen_ai.operation.name", "openinference.span.kind", "openwebui.operation.purpose"]}
+]

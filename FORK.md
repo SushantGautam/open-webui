@@ -205,6 +205,39 @@ git diff $base..fork/main -- ':!.github' ':!FORK.md' > /tmp/subpath-latest.patch
 # then `git apply --check` it against a pristine upstream clone
 ```
 
+## Downstream semantic telemetry patch
+
+This fork's semantic telemetry layer is an additive downstream patch. It
+emits vendor-neutral OpenTelemetry GenAI spans and must remain independent of
+any particular observability backend. When merging a new upstream version,
+preserve the following hook points and re-check their surrounding call paths:
+
+- M4 workflow root and context propagation: `backend/open_webui/main.py`,
+  `backend/open_webui/utils/telemetry/genai/tracer.py`.
+- M5 model inference boundaries: `backend/open_webui/routers/openai.py`,
+  `backend/open_webui/routers/ollama.py`, and
+  `backend/open_webui/utils/telemetry/genai/inference.py`.
+- M6 tool execution paths: `backend/open_webui/utils/middleware.py` and
+  `backend/open_webui/utils/telemetry/genai/tools.py`.
+- M7 retrieval, embedding, and reranking: `backend/open_webui/retrieval/utils.py`
+  and `backend/open_webui/utils/telemetry/genai/retrieval.py`.
+- M8 background-task purpose classification:
+  `backend/open_webui/utils/telemetry/genai/purpose.py` and
+  `backend/open_webui/utils/telemetry/genai/inference.py`.
+
+The acceptance bar for every upstream version bump includes the M9 topology
+and privacy conformance suite:
+
+```bash
+WEBUI_SECRET_KEY=test-secret-key uv run pytest \
+  backend/open_webui/test/apps/webui/utils/test_genai_conformance.py -v
+```
+
+Resolve any topology, semantic-attribute, privacy, or fail-open regression
+before promoting the upstream version. The interoperability procedure and
+capture settings are documented in
+`backend/open_webui/utils/telemetry/genai/README.md`.
+
 ## License
 
 MIT — same as upstream. Fork of open-webui/open-webui.
