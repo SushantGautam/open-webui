@@ -110,6 +110,21 @@ dependencies = [
     "googleapis-common-protos==1.75.0",
     "google-cloud-storage==3.9.0",
 
+    # Required when the wheel enables OpenTelemetry. Docker installs these
+    # from backend/requirements.txt, but wheel consumers need them here too.
+    "opentelemetry-api==1.42.1",
+    "opentelemetry-sdk==1.42.1",
+    "opentelemetry-exporter-otlp==1.42.1",
+    "opentelemetry-instrumentation==0.63b1",
+    "opentelemetry-instrumentation-fastapi==0.63b1",
+    "opentelemetry-instrumentation-sqlalchemy==0.63b1",
+    "opentelemetry-instrumentation-redis==0.63b1",
+    "opentelemetry-instrumentation-requests==0.63b1",
+    "opentelemetry-instrumentation-logging==0.63b1",
+    "opentelemetry-instrumentation-httpx==0.63b1",
+    "opentelemetry-instrumentation-aiohttp-client==0.63b1",
+    "opentelemetry-instrumentation-system-metrics==0.63b1",
+
     "azure-identity==1.25.3",
     "azure-storage-blob==12.29.0",
 
