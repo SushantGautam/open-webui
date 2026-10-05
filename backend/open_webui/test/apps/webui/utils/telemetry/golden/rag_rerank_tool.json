@@ -1,0 +1,8 @@
+[
+  {"name": "embedding", "parent": "retrieval", "attributes": ["openinference.span.kind"]},
+  {"name": "vector_search", "parent": "retrieval", "attributes": []},
+  {"name": "rerank", "parent": "retrieval", "attributes": ["openinference.span.kind", "openwebui.retrieval.candidate_count"]},
+  {"name": "execute_tool", "parent": "retrieval", "attributes": ["gen_ai.operation.name", "gen_ai.tool.call.id", "gen_ai.tool.name", "gen_ai.tool.type", "openinference.span.kind"]},
+  {"name": "retrieval", "parent": "invoke_workflow open-webui.chat", "attributes": ["gen_ai.operation.name", "gen_ai.retrieval.documents", "openinference.span.kind", "openwebui.retrieval.top_k"]},
+  {"name": "invoke_workflow open-webui.chat", "parent": null, "attributes": ["gen_ai.operation.name", "openinference.span.kind", "openwebui.operation.purpose"]}
+]
