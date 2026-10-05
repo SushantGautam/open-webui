@@ -134,3 +134,12 @@ Tests run: `test -s backend/open_webui/utils/telemetry/genai/README.md && rg -n 
 Test results: PASS — README contains all required destinations, fixture, environment procedure, and known-differences section; diff check passed.
 Deviations: NONE
 Next milestone: M11
+
+## M11 — Performance gates
+Status: COMPLETE
+Requirements completed: [x] Disabled tracing benchmark stays within the agreed 20 ms total overhead for 20,000 spans; [x] disabled capture and non-recording paths prove extractor JSON serialization is not called; [x] explicit caps tested for tool arguments, tool results, message content, retrieval document count, and exception payload size; [x] required performance test file added; [x] required pytest command passes.
+Files changed: backend/open_webui/utils/telemetry/genai/config.py; backend/open_webui/utils/telemetry/genai/tracer.py; backend/open_webui/utils/telemetry/genai/retrieval.py; backend/open_webui/utils/telemetry/genai/streaming.py; backend/open_webui/utils/telemetry/genai/README.md; backend/open_webui/test/apps/webui/utils/test_genai_performance.py; EXECUTION_STATE.md
+Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_performance.py -v`; `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_tracer.py backend/open_webui/test/apps/webui/utils/test_genai_retrieval.py backend/open_webui/test/apps/webui/utils/test_genai_conformance.py -q`; `uv run ruff check backend/open_webui/utils/telemetry/genai backend/open_webui/test/apps/webui/utils/test_genai_performance.py`; `git diff --check`
+Test results: PASS — performance tests `3 passed in 0.12s`; regression/conformance tests `31 passed in 0.08s`; Ruff: `All checks passed!`; diff check passed.
+Deviations: NONE
+Next milestone: M12

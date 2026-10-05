@@ -8,6 +8,7 @@ def _as_bool(value: str | None) -> bool:
 
 @dataclass(frozen=True)
 class GenAIConfig:
+    enabled: bool = True
     capture_inputs: bool = False
     capture_outputs: bool = False
     capture_system_instructions: bool = False
@@ -18,6 +19,8 @@ class GenAIConfig:
     capture_embedding_text: bool = False
     capture_embedding_vectors: bool = False
     content_max_length: int = 2000
+    retrieval_max_documents: int = 100
+    exception_max_length: int = 2000
 
     @classmethod
     def from_env(cls) -> 'GenAIConfig':
@@ -26,6 +29,7 @@ class GenAIConfig:
         except (TypeError, ValueError):
             max_length = 2000
         return cls(
+            enabled=os.getenv('OTEL_GENAI_ENABLED', 'true').strip().lower() not in {'0', 'false', 'no', 'off'},
             capture_inputs=_as_bool(os.getenv('OTEL_GENAI_CAPTURE_INPUTS')),
             capture_outputs=_as_bool(os.getenv('OTEL_GENAI_CAPTURE_OUTPUTS')),
             capture_system_instructions=_as_bool(os.getenv('OTEL_GENAI_CAPTURE_SYSTEM_INSTRUCTIONS')),

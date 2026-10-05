@@ -10,6 +10,18 @@ from opentelemetry.trace import StatusCode
 logger = logging.getLogger(__name__)
 
 
+def _record_exception(span, exc, limit):
+    if not span.is_recording():
+        return
+    span.add_event(
+        'exception',
+        {
+            'exception.type': type(exc).__name__,
+            'exception.message': str(exc)[:limit],
+        },
+    )
+
+
 class GenAITracer:
     def __init__(self, tracer=None, config: GenAIConfig | None = None):
         self.tracer = tracer or trace.get_tracer(__name__)
@@ -56,6 +68,9 @@ class GenAITracer:
     @contextmanager
     # The lifecycle guard intentionally handles independent failure points.
     def _span(self, kind, name, **attrs):  # noqa: C901
+        if not self.config.enabled:
+            yield trace.INVALID_SPAN
+            return
         defer_end = attrs.pop('_defer_end', False)
         span = None
         token = None
@@ -97,7 +112,7 @@ class GenAITracer:
             except BaseException as exc:
                 failed = True
                 try:
-                    span.record_exception(exc)
+                    _record_exception(span, exc, self.config.exception_max_length)
                     span.set_status(StatusCode.ERROR)
                 except Exception:
                     logger.exception('Unable to record GenAI span exception')
