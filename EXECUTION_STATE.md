@@ -62,3 +62,12 @@ Tests run: `uv sync`; `uv lock`; `clean_env_dir=$(mktemp -d) && uv venv "$clean_
 Test results: PASS — clean venv installed `open-webui==0.11.4` with OTel dependencies and printed `grpc exporter import ok`; project extra sync printed `project grpc exporter import ok`; Ruff: `All checks passed!`; diff check: passed.
 Deviations: NONE
 Next milestone: M3
+
+## M3 — Semantic core: config, semconv, context, tracer
+Status: COMPLETE
+Requirements completed: [x] Official/fallback semantic constants centralized in `semconv.py`; [x] no semantic-key literals outside `semconv.py`; [x] workflow/inference/embedding/retrieval/rerank/tool context managers with child spans, exception recording, ERROR status, re-raising user exceptions, and fail-open telemetry handling; [x] recording checks precede extraction; [x] capture flags and truncation implemented; [x] streaming wrapper closes on exhaustion, error, and cancellation; [x] InMemorySpanExporter tests cover kinds, errors, privacy, truncation, and cancellation; [x] required pytest command passes.
+Files changed: backend/open_webui/utils/telemetry/genai/__init__.py; backend/open_webui/utils/telemetry/genai/config.py; backend/open_webui/utils/telemetry/genai/semconv.py; backend/open_webui/utils/telemetry/genai/context.py; backend/open_webui/utils/telemetry/genai/tracer.py; backend/open_webui/utils/telemetry/genai/extractors.py; backend/open_webui/utils/telemetry/genai/streaming.py; backend/open_webui/utils/telemetry/genai/openinference.py; backend/open_webui/test/apps/webui/utils/test_genai_tracer.py
+Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_tracer.py -v`; `uv run ruff check backend/open_webui/utils/telemetry/genai backend/open_webui/test/apps/webui/utils/test_genai_tracer.py`; semantic-key grep; `git diff --check`
+Test results: PASS — `5 passed in 0.06s`; Ruff: `All checks passed!`; literal-key grep: `literal-key grep passed`; diff check: passed.
+Deviations: NONE
+Next milestone: M4
