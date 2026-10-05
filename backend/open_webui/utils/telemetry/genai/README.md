@@ -11,6 +11,7 @@ values accept `1`, `true`, `yes`, or `on` (case-insensitive).
 
 | Variable | Default | Captures |
 | --- | --- | --- |
+| `OTEL_GENAI_ENABLED` | `true` | Enables semantic span creation |
 | `OTEL_GENAI_CAPTURE_INPUTS` | `false` | Model input messages |
 | `OTEL_GENAI_CAPTURE_OUTPUTS` | `false` | Model output messages |
 | `OTEL_GENAI_CAPTURE_SYSTEM_INSTRUCTIONS` | `false` | System instructions |

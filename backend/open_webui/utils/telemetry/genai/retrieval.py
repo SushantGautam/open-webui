@@ -3,7 +3,6 @@ import inspect
 import json
 
 from open_webui.utils.telemetry.genai import semconv
-from open_webui.utils.telemetry.genai.extractors import capture
 from open_webui.utils.telemetry.genai.openinference import attributes_for
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
 
@@ -51,14 +50,16 @@ def traced_retrieval(tracer: GenAITracer):
                 top_k=values.get('k'),
                 candidate_count=len(values.get('items') or []),
                 retrieval_mode='hybrid' if values.get('hybrid_search') else 'vector',
-                data_source=[item.get('collection_name') for item in values.get('items') or [] if item.get('collection_name')],
+            data_source=[
+                item.get('collection_name') for item in values.get('items') or [] if item.get('collection_name')
+            ],
             ) as span:
                 if 'embedding_function' in values:
                     values['embedding_function'] = instrument_embedding(tracer, values['embedding_function'])
                 result = await function(*bound.args, **bound.kwargs)
                 if span.is_recording() and isinstance(result, list):
                     documents = []
-                    for rank, source in enumerate(result, 1):
+                    for rank, source in enumerate(result[:tracer.config.retrieval_max_documents], 1):
                         metadata = source.get('metadata') or {}
                         distances = source.get('distances') or []
                         entry = {
@@ -69,7 +70,7 @@ def traced_retrieval(tracer: GenAITracer):
                             'score': distances[rank - 1] if len(distances) >= rank else metadata.get('score'),
                         }
                         if tracer.config.capture_retrieval_documents:
-                            entry['content'] = (source.get('document') or [''])[rank - 1]
+                            entry['content'] = (source.get('document') or [''])[0]
                         documents.append(json.dumps(entry, ensure_ascii=False, default=str))
                     span.set_attribute(semconv.GEN_AI_RETRIEVAL_DOCUMENTS, documents)
                     span.set_attribute(semconv.OPENWEBUI_RETRIEVAL_SELECTED_COUNT, len(result))
