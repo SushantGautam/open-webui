@@ -74,9 +74,7 @@ from open_webui.config import (
     seed_registered_defaults,
 )
 from open_webui.constants import ERROR_MESSAGES, TASKS
-from open_webui.utils.recurrence import RecurrenceEvaluationTimeout
 from open_webui.env import (
-    USE_SLIM,
     AIOHTTP_CLIENT_SESSION_SSL,
     AUDIT_EXCLUDED_PATHS,
     AUDIT_INCLUDED_PATHS,
@@ -113,6 +111,7 @@ from open_webui.env import (
     RESET_CONFIG_ON_START,
     SAFE_MODE,
     SCIM_TOKEN,
+    USE_SLIM,
     VERSION,
     WEBSOCKET_HEARTBEAT_INTERVAL,
     WEBSOCKET_MANAGER,
@@ -269,8 +268,11 @@ from open_webui.utils.oauth import (
     resolve_oauth_client_info,
 )
 from open_webui.utils.plugin import install_tool_and_function_dependencies
+from open_webui.utils.recurrence import RecurrenceEvaluationTimeout
 from open_webui.utils.redis import get_redis_client
 from open_webui.utils.session_pool import cleanup_response, get_client_timeout, get_session, stream_wrapper
+from open_webui.utils.telemetry.genai.streaming import wrap_stream as wrap_genai_stream
+from open_webui.utils.telemetry.genai.tracer import GenAITracer
 from open_webui.utils.tool_approval import (
     ResolveToolCallForm,
     build_tool_approval_resume_payload,
@@ -513,6 +515,7 @@ app = FastAPI(
     root_path=WEBUI_SUBPATH,
 )
 log.info('FastAPI app initialized with root_path=%r (from WEBUI_SUBPATH).', app.root_path)
+ai_tracer = GenAITracer()
 
 
 @app.exception_handler(RecurrenceEvaluationTimeout)
@@ -1647,7 +1650,7 @@ async def chat_completion(
             detail=str(e),
         )
 
-    async def process_chat(request, form_data, user, metadata, model, tasks=None):
+    async def _process_chat(request, form_data, user, metadata, model, tasks=None):
         try:
             ctx = None
             if metadata.get('assistant_message_id'):
@@ -1801,6 +1804,25 @@ async def chat_completion(
                     )
             except Exception:
                 log.exception('Failed to process pending internal messages for chat %s', metadata.get('chat_id'))
+
+    async def process_chat(request, form_data, user, metadata, model, tasks=None):
+        with ai_tracer.workflow(
+            'invoke_workflow open-webui.chat',
+            operation_name='invoke_workflow',
+            conversation_id=metadata.get('chat_id'),
+            message_id=metadata.get('message_id'),
+            purpose='primary',
+            _defer_end=True,
+        ) as workflow_span:
+            result = await _process_chat(request, form_data, user, metadata, model, tasks)
+            if isinstance(result, StreamingResponse):
+                result.body_iterator = wrap_genai_stream(workflow_span, result.body_iterator)
+            else:
+                try:
+                    workflow_span.end()
+                except Exception:
+                    log.exception('Unable to end chat workflow span')
+            return result
 
     # Fan out: one task per model
     if metadata.get('session_id') and metadata.get('chat_id'):

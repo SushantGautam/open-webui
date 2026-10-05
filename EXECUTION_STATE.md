@@ -71,3 +71,12 @@ Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/te
 Test results: PASS — `5 passed in 0.06s`; Ruff: `All checks passed!`; literal-key grep: `literal-key grep passed`; diff check: passed.
 Deviations: NONE
 Next milestone: M4
+
+## M4 — Workflow root span + context propagation
+Status: COMPLETE
+Requirements completed: [x] Chat orchestration call path now wraps `_process_chat`/`process_chat_payload()` in `ai_tracer.workflow(...)`; [x] workflow name is exactly `invoke_workflow open-webui.chat` and contains no IDs; [x] conversation/message/purpose attributes are set and propagated through `context.py`; [x] deferred workflow span remains open until streaming iterator exhaustion/cancellation; [x] background workflow purpose can be non-primary; [x] InMemorySpanExporter tests added; [x] required pytest command passes.
+Files changed: backend/open_webui/main.py; backend/open_webui/utils/telemetry/genai/tracer.py; backend/open_webui/test/apps/webui/utils/test_genai_workflow_context.py
+Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_workflow_context.py -v`; `WEBUI_SECRET_KEY=test-secret-key uv run python -c "import open_webui.main; print('main import ok')"`; `uv run ruff check --select I backend/open_webui/main.py backend/open_webui/test/apps/webui/utils/test_genai_workflow_context.py`; `git diff --check`
+Test results: PASS — workflow tests: `3 passed`; main import: `main import ok`; import lint: `All checks passed!`; diff check: passed. Full-file Ruff reports pre-existing unrelated violations in `main.py`.
+Deviations: NONE
+Next milestone: M5
