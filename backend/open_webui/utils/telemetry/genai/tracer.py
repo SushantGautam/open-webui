@@ -36,8 +36,10 @@ class GenAITracer:
     @contextmanager
     # The lifecycle guard intentionally handles independent failure points.
     def _span(self, kind, name, **attrs):  # noqa: C901
+        defer_end = attrs.pop('_defer_end', False)
         span = None
         token = None
+        failed = False
         try:
             try:
                 span = self.tracer.start_span(name)
@@ -61,12 +63,19 @@ class GenAITracer:
                         span.set_attributes(resolved)
                     if kind == 'workflow':
                         context.apply_context(span, attrs)
+                        context.set_context(
+                            chat_id=attrs.get('chat_id'),
+                            message_id=attrs.get('message_id'),
+                            conversation_id=attrs.get('conversation_id'),
+                            purpose=attrs.get('purpose', 'primary'),
+                        )
             except Exception:
                 logger.exception('Unable to initialize GenAI span')
 
             try:
                 yield span
             except BaseException as exc:
+                failed = True
                 try:
                     span.record_exception(exc)
                     span.set_status(StatusCode.ERROR)
@@ -79,7 +88,7 @@ class GenAITracer:
                     token.__exit__(None, None, None)
                 except Exception:
                     logger.exception('Unable to detach GenAI span context')
-            if span is not None:
+            if span is not None and (not defer_end or failed):
                 try:
                     span.end()
                 except Exception:
