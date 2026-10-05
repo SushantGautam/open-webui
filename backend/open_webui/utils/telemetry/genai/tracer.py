@@ -33,6 +33,26 @@ class GenAITracer:
     def tool(self, name='execute_tool', **attrs):
         return self._span('tool', name, **attrs)
 
+    def finish_inference(self, span, response):
+        try:
+            if span.is_recording() and isinstance(response, dict):
+                usage = response.get('usage') or {}
+                attributes = {
+                    semconv.GEN_AI_RESPONSE_MODEL: response.get('model'),
+                    semconv.GEN_AI_RESPONSE_ID: response.get('id'),
+                    semconv.GEN_AI_USAGE_INPUT_TOKENS: usage.get('prompt_tokens', usage.get('input_tokens')),
+                    semconv.GEN_AI_USAGE_OUTPUT_TOKENS: usage.get('completion_tokens', usage.get('output_tokens')),
+                    semconv.GEN_AI_RESPONSE_FINISH_REASONS: [
+                        choice.get('finish_reason')
+                        for choice in response.get('choices', [])
+                        if isinstance(choice, dict) and choice.get('finish_reason') is not None
+                    ],
+                }
+                span.set_attributes({key: value for key, value in attributes.items() if value is not None})
+            span.end()
+        except Exception:
+            logger.exception('Unable to finish GenAI inference span')
+
     @contextmanager
     # The lifecycle guard intentionally handles independent failure points.
     def _span(self, kind, name, **attrs):  # noqa: C901
