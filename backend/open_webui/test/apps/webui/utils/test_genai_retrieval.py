@@ -1,6 +1,6 @@
 import pytest
 from open_webui.utils.telemetry.genai.config import GenAIConfig
-from open_webui.utils.telemetry.genai.retrieval import instrument_embedding, instrument_reranker
+from open_webui.utils.telemetry.genai.retrieval import instrument_embedding, instrument_reranker, traced_retrieval
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
@@ -46,3 +46,35 @@ async def test_embedding_and_retrieval_content_are_private_by_default():
     assert 'gen_ai.retrieval.query.text' not in spans[0].attributes
     assert 'gen_ai.embeddings' not in spans[0].attributes
     assert spans[-1].attributes['gen_ai.retrieval.documents']
+
+
+@pytest.mark.asyncio
+async def test_embedding_vectors_and_document_content_are_capped_when_enabled():
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    tracer = GenAITracer(
+        provider.get_tracer('retrieval-content-test'),
+        GenAIConfig(capture_embedding_vectors=True, capture_retrieval_documents=True, content_max_length=8),
+    )
+
+    async def embedding(query, prefix=None):
+        return [[0.1, 0.2, 0.3, 0.4]]
+
+    @traced_retrieval(tracer)
+    async def retrieve(items, queries, k, hybrid_search=False, embedding_function=None):
+        await instrument_embedding(tracer, embedding_function)('query')
+        return items
+
+    await retrieve(
+        items=[{'metadata': {'document_id': 'doc-1'}, 'document': ['document-content-too-long']}],
+        queries=['query'],
+        k=1,
+        embedding_function=embedding,
+    )
+    spans = exporter.get_finished_spans()
+    embedding_span = next(span for span in spans if span.name == 'embedding')
+    retrieval_span = next(span for span in spans if span.name == 'retrieval')
+    assert len(embedding_span.attributes['gen_ai.embeddings']) <= 8
+    assert '"content": "document"' in retrieval_span.attributes['gen_ai.retrieval.documents'][0]
+    assert 'document-content-too-long' not in retrieval_span.attributes['gen_ai.retrieval.documents'][0]

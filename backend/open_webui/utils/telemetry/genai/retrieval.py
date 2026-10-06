@@ -3,6 +3,7 @@ import inspect
 import json
 
 from open_webui.utils.telemetry.genai import semconv
+from open_webui.utils.telemetry.genai.extractors import capture
 from open_webui.utils.telemetry.genai.openinference import attributes_for
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
 
@@ -15,7 +16,9 @@ def instrument_embedding(tracer: GenAITracer, embedding_function):
         with tracer.embedding('embedding', embedding_text=query) as span:
             result = await embedding_function(query, *args, **kwargs)
             if span.is_recording() and tracer.config.capture_embedding_vectors and result is not None:
-                span.set_attribute(semconv.GEN_AI_EMBEDDINGS, result)
+                value = capture(result, enabled=True, config=tracer.config)
+                if value is not None:
+                    span.set_attribute(semconv.GEN_AI_EMBEDDINGS, value)
             return result
 
     return wrapped
@@ -70,7 +73,11 @@ def traced_retrieval(tracer: GenAITracer):
                             'score': distances[rank - 1] if len(distances) >= rank else metadata.get('score'),
                         }
                         if tracer.config.capture_retrieval_documents:
-                            entry['content'] = (source.get('document') or [''])[0]
+                            entry['content'] = capture(
+                                (source.get('document') or [''])[0],
+                                enabled=True,
+                                config=tracer.config,
+                            )
                         documents.append(json.dumps(entry, ensure_ascii=False, default=str))
                     span.set_attribute(semconv.GEN_AI_RETRIEVAL_DOCUMENTS, documents)
                     span.set_attribute(semconv.OPENWEBUI_RETRIEVAL_SELECTED_COUNT, len(result))

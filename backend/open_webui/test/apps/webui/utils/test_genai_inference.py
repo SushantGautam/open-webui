@@ -61,6 +61,29 @@ async def test_content_is_absent_for_openai_and_ollama_when_disabled():
 
 
 @pytest.mark.asyncio
+async def test_buffered_output_is_captured_when_enabled():
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    tracer = GenAITracer(
+        provider.get_tracer('output-content-test'),
+        GenAIConfig(capture_outputs=True, content_max_length=12),
+    )
+
+    async def call():
+        return {
+            'id': 'response',
+            'model': 'model',
+            'choices': [{'message': {'role': 'assistant', 'content': 'output is longer'}}],
+        }
+
+    await traced_inference(tracer, provider='openai-compatible', request_payload={'model': 'model'}, call=call)
+    output = exporter.get_finished_spans()[0].attributes['gen_ai.output.messages']
+    assert len(output) == 12
+    assert output.startswith('[{"role": "a')
+
+
+@pytest.mark.asyncio
 async def test_streaming_inference_span_closes_after_body_iterator():
     exporter = InMemorySpanExporter()
     provider = TracerProvider()
@@ -80,6 +103,31 @@ async def test_streaming_inference_span_closes_after_body_iterator():
     assert exporter.get_finished_spans() == ()
     assert [item async for item in result.body_iterator] == ['chunk']
     assert len(exporter.get_finished_spans()) == 1
+
+
+@pytest.mark.asyncio
+async def test_streaming_output_is_captured_after_body_iteration():
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    tracer = GenAITracer(
+        provider.get_tracer('stream-output-test'),
+        GenAIConfig(capture_outputs=True),
+    )
+
+    async def body():
+        yield 'chunk-one'
+        yield 'chunk-two'
+
+    response = SimpleNamespace(body_iterator=body())
+    result = await traced_inference(
+        tracer,
+        provider='ollama',
+        request_payload={'model': 'model', 'stream': True},
+        call=lambda: _return(response),
+    )
+    assert [item async for item in result.body_iterator] == ['chunk-one', 'chunk-two']
+    assert exporter.get_finished_spans()[0].attributes['gen_ai.output.messages'] == 'chunk-onechunk-two'
 
 
 async def _return(value):

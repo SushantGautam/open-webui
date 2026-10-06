@@ -152,3 +152,12 @@ Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/te
 Test results: PASS — conformance `24 passed in 0.10s`; performance `3 passed in 0.10s`; locked telemetry setup `3 passed, 1 warning in 3.32s`; import lint `All checks passed!`; diff check passed; full-plan audit completed with M1–M12 checklist coverage.
 Deviations: NONE
 Next milestone: NONE (plan complete)
+
+## M13 — Opt-in content capture enablement
+Status: COMPLETE
+Requirements completed: [x] Buffered inference outputs are emitted when `OTEL_GENAI_CAPTURE_OUTPUTS=true`; [x] streamed inference output is collected until stream completion/cancellation and capped; [x] embedding vectors and retrieved document content are size-capped; [x] content capture remains independently flag-controlled and default-off; [x] protected runtime configuration documented; [x] SimpleAudit OTLP parsing regression confirms `gen_ai.*` content attributes are preserved.
+Files changed: backend/open_webui/utils/telemetry/genai/tracer.py; backend/open_webui/utils/telemetry/genai/inference.py; backend/open_webui/utils/telemetry/genai/streaming.py; backend/open_webui/utils/telemetry/genai/retrieval.py; backend/open_webui/utils/telemetry/genai/README.md; backend/open_webui/test/apps/webui/utils/test_genai_inference.py; backend/open_webui/test/apps/webui/utils/test_genai_retrieval.py; /Users/sushantgautam/Documents/SimpleAudit/tests/test_tracing.py
+Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_inference.py backend/open_webui/test/apps/webui/utils/test_genai_retrieval.py backend/open_webui/test/apps/webui/utils/test_genai_tracer.py backend/open_webui/test/apps/webui/utils/test_genai_tools.py backend/open_webui/test/apps/webui/utils/test_genai_conformance.py backend/open_webui/test/apps/webui/utils/test_genai_performance.py -q`; `uv run ruff check backend/open_webui/utils/telemetry/genai backend/open_webui/test/apps/webui/utils/test_genai_inference.py backend/open_webui/test/apps/webui/utils/test_genai_retrieval.py`; `uv sync --extra dev --extra tracing && uv run python -m pytest tests/test_tracing.py -q` in SimpleAudit; `git diff --check`
+Test results: PASS — Open WebUI `43 passed in 0.29s`; Ruff `All checks passed!`; SimpleAudit `39 passed in 9.46s`; diff checks passed.
+Deviations: NONE
+Next milestone: NONE (plan complete)
