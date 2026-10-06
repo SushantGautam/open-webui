@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.4.3] - 2026-10-06
+
+### Added
+
+- **Opt-in GenAI content capture.** OpenTelemetry inference outputs, including
+  buffered and streamed responses, can now be captured with the existing
+  `OTEL_GENAI_CAPTURE_*` flags. Captured content remains size-capped and
+  disabled by default.
+
 ## [0.11.4] - 2026-09-21
 
 ### Added
