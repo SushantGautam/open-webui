@@ -28,6 +28,27 @@ including `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`, and
 `OTEL_EXPORTER_OTLP_INSECURE`. No vendor-specific exporter or attribute is
 required.
 
+## Protected content-capture verification
+
+Content capture is disabled by default. For a protected local receiver only,
+enable the fields needed by the test and keep the length cap in place:
+
+```bash
+OTEL_GENAI_CAPTURE_INPUTS=true \
+OTEL_GENAI_CAPTURE_OUTPUTS=true \
+OTEL_GENAI_CAPTURE_TOOL_ARGUMENTS=true \
+OTEL_GENAI_CAPTURE_TOOL_RESULTS=true \
+OTEL_GENAI_CAPTURE_RETRIEVAL_QUERY=true \
+OTEL_GENAI_CAPTURE_RETRIEVAL_DOCUMENTS=true \
+OTEL_GENAI_CONTENT_MAX_LENGTH=2000
+```
+
+Buffered and streamed model outputs are emitted on `gen_ai.output.messages`.
+Tool arguments/results, retrieval query/document content, embedding text, and
+embedding vectors each remain independently controlled by their corresponding
+flag. Do not enable these flags for an untrusted or production telemetry
+destination without an explicit data-handling review.
+
 ## M10 interoperability procedure
 
 Use the M9 `rag_rerank_tool` scenario as the representative trace: a chat

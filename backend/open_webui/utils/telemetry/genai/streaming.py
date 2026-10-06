@@ -7,10 +7,15 @@ from opentelemetry.trace import StatusCode
 logger = logging.getLogger(__name__)
 
 
-async def wrap_stream(span, async_iterator):
+async def wrap_stream(span, async_iterator, *, on_item=None, on_finish=None):  # noqa: C901
     ended = False
     try:
         async for item in async_iterator:
+            if on_item is not None:
+                try:
+                    on_item(item)
+                except Exception:
+                    logger.exception('Unable to capture GenAI stream item')
             yield item
         span.set_status(StatusCode.OK)
     except asyncio.CancelledError:
@@ -28,6 +33,11 @@ async def wrap_stream(span, async_iterator):
         span.set_status(StatusCode.ERROR)
         raise
     finally:
+        if on_finish is not None:
+            try:
+                on_finish()
+            except Exception:
+                logger.exception('Unable to capture GenAI stream output')
         if not ended:
             ended = True
             try:

@@ -61,9 +61,23 @@ class GenAITracer:
                     ],
                 }
                 span.set_attributes({key: value for key, value in attributes.items() if value is not None})
+                if self.config.capture_outputs:
+                    output = _response_output(response)
+                    captured = extractors.capture(output, enabled=True, config=self.config)
+                    if captured is not None:
+                        span.set_attribute(semconv.GEN_AI_OUTPUT_MESSAGES, captured)
             span.end()
         except Exception:
             logger.exception('Unable to finish GenAI inference span')
+
+    def finish_stream(self, span, chunks):
+        try:
+            if span.is_recording() and self.config.capture_outputs and chunks:
+                captured = extractors.capture(''.join(chunks), enabled=True, config=self.config)
+                if captured is not None:
+                    span.set_attribute(semconv.GEN_AI_OUTPUT_MESSAGES, captured)
+        except Exception:
+            logger.exception('Unable to finish GenAI streaming span')
 
     @contextmanager
     # The lifecycle guard intentionally handles independent failure points.
@@ -126,3 +140,17 @@ class GenAITracer:
                     span.end()
                 except Exception:
                     logger.exception('Unable to end GenAI span')
+
+
+def _response_output(response):
+    choices = response.get('choices') or []
+    messages = []
+    for choice in choices:
+        if not isinstance(choice, dict):
+            continue
+        message = choice.get('message') or choice.get('text')
+        if message is not None:
+            messages.append(message)
+    if messages:
+        return messages
+    return response.get('output') or response.get('response')
