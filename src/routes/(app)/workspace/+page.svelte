@@ -7,20 +7,20 @@
 	onMount(() => {
 		if ($user?.role !== 'admin') {
 			if ($user?.permissions?.workspace?.models) {
-				goto(`${base}/workspace/models`, { replaceState: true });
+				goto('/workspace/models', { replaceState: true });
 			} else if ($user?.permissions?.workspace?.knowledge) {
-				goto(`${base}/workspace/knowledge`, { replaceState: true });
+				goto('/workspace/knowledge', { replaceState: true });
 			} else if ($user?.permissions?.workspace?.prompts) {
-				goto(`${base}/workspace/prompts`, { replaceState: true });
-			} else if ($config?.features?.enable_plugins && $user?.permissions?.workspace?.tools) {
-				goto(`${base}/workspace/tools`, { replaceState: true });
+				goto('/workspace/prompts', { replaceState: true });
+			} else if ($config?.features?.enable_tools && $user?.permissions?.workspace?.tools) {
+				goto('/workspace/tools', { replaceState: true });
 			} else if ($user?.permissions?.workspace?.skills) {
-				goto(`${base}/workspace/skills`, { replaceState: true });
+				goto('/workspace/skills', { replaceState: true });
 			} else {
-				goto(`${base}/`, { replaceState: true });
+				goto('/', { replaceState: true });
 			}
 		} else {
-			goto(`${base}/workspace/models`, { replaceState: true });
+			goto('/workspace/models', { replaceState: true });
 		}
 	});
 </script>
