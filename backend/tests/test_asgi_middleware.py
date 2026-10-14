@@ -3,7 +3,7 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
-from open_webui.utils.asgi_middleware import RedirectMiddleware
+from open_webui.utils.asgi_middleware import AppHTTPMiddleware
 
 
 async def ok(_request):
@@ -12,7 +12,7 @@ async def ok(_request):
 
 def build_client(*, root_path: str = '') -> TestClient:
     app = Starlette(routes=[Route('/', ok), Route('/watch', ok)])
-    app.add_middleware(RedirectMiddleware)
+    app.add_middleware(AppHTTPMiddleware)
     return TestClient(app, root_path=root_path)
 
 
