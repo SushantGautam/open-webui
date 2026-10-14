@@ -19,34 +19,37 @@ ARG USE_AUXILIARY_EMBEDDING_MODEL=TaylorAI/bge-micro-v2
 ARG USE_TIKTOKEN_ENCODING_NAME="cl100k_base"
 
 ARG BUILD_HASH=dev-build
+ARG BUILD_CHANNEL=unknown
 # Override at your own risk - non-root configurations are untested
 ARG UID=0
 ARG GID=0
+ARG WEBUI_SUBPATH=""
 
 ######## WebUI frontend ########
 FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
 ARG BUILD_HASH
+ARG BUILD_CHANNEL
 ARG USE_SLIM
 ARG UID
 ARG GID
-ARG WEBUI_SUBPATH=""
 
 # Set Node.js options (heap limit Allocation failed - JavaScript heap out of memory)
 # ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# The SvelteKit/Vite production build OOMs at Node's ~2GB default heap.
+ENV NODE_OPTIONS="--max-old-space-size=6144"
 
 WORKDIR /app
 
 # to store git revision in build
 RUN apk add --no-cache git
 
-# The SvelteKit/Vite production build OOMs at Node's ~2GB default heap.
-ENV NODE_OPTIONS="--max-old-space-size=6144"
-
 COPY package.json package-lock.json ./
 RUN npm ci --force
 
 COPY . .
 ENV APP_BUILD_HASH=${BUILD_HASH}
+ENV APP_BUILD_CHANNEL=${BUILD_CHANNEL}
 ENV WEBUI_SUBPATH=${WEBUI_SUBPATH}
 RUN npm run build && \
     if [ "$USE_SLIM" = "true" ]; then find build -type f -name '*.map' -delete; fi
@@ -230,7 +233,7 @@ RUN if [ "$USE_PERMISSION_HARDENING" = "true" ]; then \
 USER $UID:$GID
 
 ARG BUILD_HASH
-ENV WEBUI_BUILD_VERSION=${BUILD_HASH}
+ENV WEBUI_BUILD_HASH=${BUILD_HASH}
 ENV DOCKER=true
 
 # Default the backend runtime subpath to match the value the frontend was built

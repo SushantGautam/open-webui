@@ -41,6 +41,7 @@
 			name: data.name,
 			meta: data.meta,
 			content: data.content,
+			commit_message: data.commit_message,
 			access_grants: data.access_grants
 		}).catch((error) => {
 			toast.error(`${error}`);
@@ -89,9 +90,7 @@
 				content={tool?.content ?? ''}
 				accessGrants={tool?.access_grants !== undefined ? tool.access_grants : []}
 				{clone}
-				onSave={(value) => {
-					saveHandler(value);
-				}}
+				onSave={saveHandler}
 			/>
 		</div>
 	{/key}

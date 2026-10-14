@@ -1,4 +1,6 @@
 <script lang="ts">
+	import WorkspaceAccessModal from './common/WorkspaceAccessModal.svelte';
+	let accessModal: WorkspaceAccessModal;
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
 	import { toast } from 'svelte-sonner';
@@ -69,6 +71,7 @@
 	let importFiles = null;
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
+	let searchController: AbortController;
 
 	let prompts = null;
 	let tags = [];
@@ -128,6 +131,7 @@
 	}
 
 	const handleSearchInput = () => {
+		searchController?.abort();
 		loading = true;
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
@@ -171,6 +175,11 @@
 	const getPromptList = async () => {
 		if (!loaded) return;
 
+		clearTimeout(searchDebounceTimer);
+		searchController?.abort();
+		searchController = new AbortController();
+		const { signal } = searchController;
+
 		loading = true;
 		try {
 			const res = await getPromptItems(
@@ -180,11 +189,14 @@
 				selectedTag,
 				sortKey,
 				sortDirection,
-				page
+				page,
+				signal
 			).catch((error) => {
-				toast.error(`${error}`);
+				if (!signal.aborted) toast.error(`${error}`);
 				return null;
 			});
+
+			if (signal.aborted) return;
 
 			if (res) {
 				prompts = res.items;
@@ -192,15 +204,16 @@
 				workspaceCounts.update((counts) => ({ ...counts, prompts: total }));
 
 				// get tags
-				tags = await getPromptTags(localStorage.token).catch((error) => {
-					toast.error(`${error}`);
+				const fetchedTags = await getPromptTags(localStorage.token).catch((error) => {
+					if (!signal.aborted) toast.error(`${error}`);
 					return [];
 				});
+				if (!signal.aborted) tags = fetchedTags;
 			}
 		} catch (err) {
 			console.error(err);
 		} finally {
-			loading = false;
+			if (!signal.aborted) loading = false;
 		}
 	};
 
@@ -248,10 +261,7 @@
 	};
 
 	const createPromptHandler = async (prompt: PromptDraft) => {
-		const res = await createNewPrompt(localStorage.token, prompt).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
+		const res = await createNewPrompt(localStorage.token, prompt);
 
 		if (res) {
 			toast.success($i18n.t('Prompt created successfully'));
@@ -259,6 +269,7 @@
 			await getPromptList();
 			await closeCreateModal();
 		}
+		return res;
 	};
 
 	const cloneHandler = async (prompt) => {
@@ -362,9 +373,12 @@
 	});
 
 	onDestroy(() => {
+		searchController?.abort();
 		clearTimeout(searchDebounceTimer);
 	});
 </script>
+
+<WorkspaceAccessModal bind:this={accessModal} resourceType="prompts" onUpdated={getPromptList} />
 
 <svelte:head>
 	<!-- LICENSE covers this Open WebUI browser-title identifier.
@@ -593,14 +607,16 @@
 											</div>
 
 											<Tooltip
-												content={dayjs((prompt.updated_at ?? prompt.created_at) * 1000).format(
-													'LLLL'
-												)}
+												content={dayjs((prompt.updated_at ?? prompt.created_at) * 1000)
+													.locale($i18n.language)
+													.format('LLLL')}
 											>
 												<div
 													class="shrink-0 truncate text-[0.6875rem] leading-5 text-gray-400 dark:text-gray-600"
 												>
-													{dayjs((prompt.updated_at ?? prompt.created_at) * 1000).fromNow()}
+													{dayjs((prompt.updated_at ?? prompt.created_at) * 1000)
+														.locale($i18n.language)
+														.fromNow()}
 												</div>
 											</Tooltip>
 
@@ -642,9 +658,10 @@
 								{#if shiftKey}
 									<Tooltip content={$i18n.t('Delete')}>
 										<button
-											class="flex size-6 items-center justify-center rounded-lg text-gray-400 transition dark:text-gray-500"
+											class="flex size-6 items-center justify-center rounded-lg text-gray-400 transition dark:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
 											type="button"
 											aria-label={$i18n.t('Delete')}
+											disabled={!prompt.write_access}
 											on:click={(e) => {
 												e.preventDefault();
 												e.stopPropagation();
@@ -676,6 +693,8 @@
 
 									<div class="ml-0.5 flex shrink-0 flex-row items-center gap-1.5 self-center">
 										<PromptMenu
+											accessHandler={() => accessModal.open(prompt.id)}
+											writeAccess={prompt.write_access}
 											show={openPromptMenuId === prompt.id}
 											editHandler={() => {
 												goto(`${base}/workspace/prompts/${prompt.id}`);
@@ -714,6 +733,7 @@
 										<button
 											class="flex h-6 items-center"
 											type="button"
+											disabled={!prompt.write_access}
 											on:click={(e) => {
 												e.stopPropagation();
 												e.preventDefault();
@@ -726,6 +746,8 @@
 											>
 												<Switch
 													bind:state={prompt.is_active}
+													disabled={!prompt.write_access}
+													ariaLabel={$i18n.t('Enabled')}
 													on:change={async () => {
 														togglePromptById(localStorage.token, prompt.id);
 													}}
@@ -759,7 +781,7 @@
 
 	{#if $config?.features.enable_community_sharing}
 		<CommunityDiscover
-			href="https://openwebui.com/prompts"
+			href="https://openwebui.com/search?type=prompt"
 			title={$i18n.t('Discover a prompt')}
 			description={$i18n.t('Discover, download, and explore custom prompts')}
 		/>

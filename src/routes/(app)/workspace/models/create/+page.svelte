@@ -64,7 +64,7 @@
 				} catch (error: any) {
 					toast.error(`${error?.message ?? error}`);
 				}
-				return true;
+				return res;
 			}
 		}
 		return false;

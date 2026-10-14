@@ -1,4 +1,6 @@
 <script lang="ts">
+	import WorkspaceAccessModal from './common/WorkspaceAccessModal.svelte';
+	let accessModal: WorkspaceAccessModal;
 	import { resolveLocalizedResource } from '$lib/utils/localizedContent';
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
@@ -9,7 +11,7 @@
 	dayjs.extend(relativeTime);
 
 	import { onMount, getContext, tick, onDestroy } from 'svelte';
-	const i18n = getContext('i18n');
+	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
 
 	import {
 		WEBUI_NAME,
@@ -88,7 +90,7 @@
 			},
 			{
 				id: 'tools-import-link',
-				label: $i18n.t('Import From Link'),
+				label: $i18n.t('Import from URL'),
 				onClick: () => {
 					showImportModal = true;
 				},
@@ -295,6 +297,8 @@
 	});
 </script>
 
+<WorkspaceAccessModal bind:this={accessModal} resourceType="tools" onUpdated={init} />
+
 <svelte:head>
 	<!-- LICENSE covers this Open WebUI browser-title identifier.
 	Do not alter, remove, obscure, or replace it except as LICENSE permits:
@@ -465,11 +469,17 @@
 												</div>
 											{/if}
 
-											<Tooltip content={dayjs(tool.updated_at * 1000).format('LLLL')}>
+											<Tooltip
+												content={dayjs(tool.updated_at * 1000)
+													.locale($i18n.language)
+													.format('LLLL')}
+											>
 												<div
 													class="shrink-0 truncate text-[0.6875rem] leading-5 text-gray-400 dark:text-gray-600"
 												>
-													{dayjs(tool.updated_at * 1000).fromNow()}
+													{dayjs(tool.updated_at * 1000)
+														.locale($i18n.language)
+														.fromNow()}
 												</div>
 											</Tooltip>
 
@@ -582,6 +592,7 @@
 										</Tooltip>
 
 										<ToolMenu
+											accessHandler={() => accessModal.open(tool.id)}
 											show={openToolMenuId === tool.id}
 											editHandler={() => {
 												goto(`${base}/workspace/tools/edit?id=${encodeURIComponent(tool.id)}`);
@@ -637,7 +648,7 @@
 
 	{#if $config?.features.enable_community_sharing}
 		<CommunityDiscover
-			href="https://openwebui.com/tools"
+			href="https://openwebui.com/search?type=tool"
 			title={$i18n.t('Discover a tool')}
 			description={$i18n.t('Discover, download, and explore custom tools')}
 		/>
