@@ -1,14 +1,16 @@
 <script lang="ts">
+	import { base } from '$app/paths';
+	import WorkspaceAccessModal from './common/WorkspaceAccessModal.svelte';
+	let accessModal: WorkspaceAccessModal;
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
 	import { toast } from 'svelte-sonner';
-	import { base } from '$app/paths';
 	import Sortable from 'sortablejs';
 
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
-	import { onMount, getContext, tick } from 'svelte';
+	import { onMount, getContext, tick, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	const i18n = getContext<any>('i18n');
 	dayjs.extend(relativeTime);
@@ -47,6 +49,7 @@
 	} from '$lib/utils/localizedContent';
 
 	import EllipsisHorizontal from '../icons/EllipsisHorizontal.svelte';
+	import ArrowRight from '../icons/ArrowRight.svelte';
 	import CheckCircle from '../icons/CheckCircle.svelte';
 	import Minus from '../icons/Minus.svelte';
 	import ModelMenu from './Models/ModelMenu.svelte';
@@ -81,6 +84,7 @@
 	let showModelDeleteConfirm = false;
 
 	let selectedModel = null;
+	let updatingModels: Record<string, boolean> = {};
 
 	let groupIds = [];
 
@@ -96,7 +100,13 @@
 	let models = null;
 	let total = null;
 
-	let searchDebounceTimer;
+	let searchDebounceTimer: ReturnType<typeof setTimeout>;
+	let searchController: AbortController;
+
+	onDestroy(() => {
+		clearTimeout(searchDebounceTimer);
+		searchController?.abort();
+	});
 
 	$: if (loaded) {
 		workspaceActions.set([
@@ -144,7 +154,7 @@
 
 	const openModel = (model) => {
 		if (model.write_access) {
-			goto(`${base}/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
+			goto(`/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
 		}
 	};
 
@@ -152,8 +162,50 @@
 		return target instanceof Element && !!target.closest('button, a, input, [role="menu"]');
 	};
 
+	const confirmDeleteModel = (model: any) => {
+		selectedModel = model;
+		showModelDeleteConfirm = true;
+	};
+
+	const toggleModelHandler = async (model: any) => {
+		if (updatingModels[model.id]) return;
+		const previousState = !model.is_active;
+		updatingModels = { ...updatingModels, [model.id]: true };
+
+		try {
+			const updatedModel = await toggleModelById(localStorage.token, model.id);
+			model.is_active = updatedModel.is_active;
+			models = models;
+		} catch (error: any) {
+			model.is_active = previousState;
+			models = models;
+			toast.error(`${error?.detail ?? error}`);
+			return;
+		} finally {
+			updatingModels = { ...updatingModels, [model.id]: false };
+		}
+
+		try {
+			_models.set(
+				await getModels(
+					localStorage.token,
+					$config?.features?.enable_direct_connections
+						? ($settings?.directConnections ?? null)
+						: null
+				)
+			);
+		} catch (error: any) {
+			toast.error(`${error?.detail ?? error}`);
+		}
+	};
+
 	const getModelList = async () => {
 		if (!loaded) return;
+
+		clearTimeout(searchDebounceTimer);
+		searchController?.abort();
+		searchController = new AbortController();
+		const { signal } = searchController;
 
 		try {
 			const res = await getWorkspaceModels(
@@ -163,11 +215,14 @@
 				selectedTag,
 				sortKey,
 				sortDirection,
-				page
+				page,
+				signal
 			).catch((error) => {
-				toast.error(`${error}`);
+				if (!signal.aborted) toast.error(`${error}`);
 				return null;
 			});
+
+			if (signal.aborted) return;
 
 			if (res) {
 				models = res.items;
@@ -175,10 +230,11 @@
 				workspaceCounts.update((counts) => ({ ...counts, models: total }));
 
 				// get tags
-				tags = await getModelTags(localStorage.token).catch((error) => {
-					toast.error(`${error}`);
+				const fetchedTags = await getModelTags(localStorage.token).catch((error) => {
+					if (!signal.aborted) toast.error(`${error}`);
 					return [];
 				});
+				if (!signal.aborted) tags = fetchedTags;
 			}
 		} catch (err) {
 			console.error(err);
@@ -216,7 +272,7 @@
 			id: `${model.id}-clone`,
 			name: `${model.name} (Clone)`
 		});
-		goto(`${base}/workspace/models/create`);
+		goto(`\${base}/workspace/models/create`);
 	};
 
 	const shareModelHandler = async (model) => {
@@ -453,6 +509,8 @@
 	});
 </script>
 
+<WorkspaceAccessModal bind:this={accessModal} resourceType="models" onUpdated={getModelList} />
+
 <svelte:head>
 	<!-- LICENSE covers this Open WebUI browser-title identifier.
 	Do not alter, remove, obscure, or replace it except as LICENSE permits:
@@ -533,6 +591,7 @@
 					placeholder={$i18n.t('Search Models')}
 					maxlength="500"
 					on:input={() => {
+						searchController?.abort();
 						clearTimeout(searchDebounceTimer);
 						searchDebounceTimer = setTimeout(() => {
 							page = 1;
@@ -608,7 +667,7 @@
 					</Tooltip>
 
 					<div slot="content">
-						<DropdownMenu className="w-[10.625rem] shadow-sm">
+						<DropdownMenu className="min-w-[10.625rem] shadow-sm">
 							<button
 								class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 								type="button"
@@ -662,6 +721,7 @@
 
 		{#if models !== null}
 			{#if (models ?? []).length !== 0}
+				<!-- Previous labels retained for i18n extraction: {$i18n.t('Sort by')} -->
 				<div class="my-1" id="model-list">
 					<div
 						class="flex w-full items-center gap-2 px-1.5 pb-0.5 text-xs text-gray-400 dark:text-gray-600"
@@ -703,7 +763,7 @@
 						{#each models as model (model.id)}
 							{@const localizedModelName = resolveLocalizedModelName(model, $i18n.language)}
 							<div
-								class="group flex min-h-8 w-full items-center gap-2 overflow-hidden rounded-xl px-2 py-1 text-left {model.write_access
+								class="group flex min-h-8 w-full items-center gap-1.5 overflow-hidden rounded-xl px-2 py-0.5 text-left {model.write_access
 									? 'cursor-pointer'
 									: ''} {model?.meta?.hidden ? 'opacity-50 dark:opacity-50' : ''}"
 								id="model-item-{model.id}"
@@ -721,7 +781,7 @@
 									}
 								}}
 							>
-								<div class="mr-1 shrink-0 self-center">
+								<div class="shrink-0 self-center">
 									<div class="{model.is_active ? '' : 'opacity-50 dark:opacity-50'} bg-transparent">
 										<img
 											src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model.id}&lang=${$i18n.language}`}
@@ -733,7 +793,7 @@
 												// LICENSE covers this Open WebUI fallback logo.
 												// Do not alter, remove, obscure, or replace it except as LICENSE permits:
 												// https://docs.openwebui.com/license.
-												e.target.src = `${base}/static/favicon.png`;
+												e.target.src = '/favicon.png';
 											}}
 										/>
 									</div>
@@ -742,18 +802,36 @@
 								<div class="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
 									<div class="flex min-w-0 flex-1 flex-col overflow-hidden">
 										<div class="flex min-w-0 items-center gap-2 overflow-hidden">
-											<div class="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+											<div class="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
 												<Tooltip
 													content={localizedModelName}
 													className="min-w-0"
 													placement="top-start"
 												>
+													{#if model.write_access}
+														<a
+															href={`/workspace/models/edit?id=${encodeURIComponent(model.id)}`}
+															class="focus-ring block truncate rounded text-[0.8125rem] leading-5 text-gray-800 group-hover:underline focus-visible:underline dark:text-gray-200"
+															>{localizedModelName}</a
+														>
+													{:else}
+														<span
+															class="block truncate text-[0.8125rem] leading-5 text-gray-800 dark:text-gray-200"
+															>{localizedModelName}</span
+														>
+													{/if}
+												</Tooltip>
+												<Tooltip
+													content={$i18n.t('Try in chat')}
+													className="-ml-0.5 h-5 w-4 shrink-0"
+													tippyOptions={{ trigger: 'mouseenter focusin' }}
+												>
 													<a
-														href={`${base}/?model=${encodeURIComponent(model.id)}`}
-														class="block truncate text-[0.8125rem] leading-5 text-gray-800 group-hover:underline dark:text-gray-200"
+														href={`/?model=${encodeURIComponent(model.id)}`}
+														aria-label={`${$i18n.t('Try in chat')}: ${localizedModelName}`}
+														class="focus-ring flex h-5 w-4 items-center justify-center rounded text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-200"
+														><ArrowRight className="size-3 -rotate-45" strokeWidth="2" /></a
 													>
-														{localizedModelName}
-													</a>
 												</Tooltip>
 
 												<div
@@ -762,12 +840,17 @@
 													{model.id}
 												</div>
 
-												<Tooltip content={dayjs(model.updated_at * 1000).format('LLLL')}>
-													<div
-														class="shrink-0 truncate text-[0.6875rem] leading-5 text-gray-400 dark:text-gray-600"
+												<Tooltip
+													content={dayjs(model.updated_at * 1000)
+														.locale($i18n.language)
+														.format('LLLL')}
+													className="hidden shrink-0 sm:flex"
+												>
+													<span class="text-[0.6875rem] leading-5 text-gray-400 dark:text-gray-500"
+														>{dayjs(model.updated_at * 1000)
+															.locale($i18n.language)
+															.fromNow()}</span
 													>
-														{dayjs(model.updated_at * 1000).fromNow()}
-													</div>
 												</Tooltip>
 
 												{#if !model.write_access}
@@ -812,7 +895,7 @@
 									</Tooltip>
 								</div>
 
-								<div class="ml-2 flex shrink-0 flex-row items-center self-center">
+								<div class="ml-1 flex shrink-0 flex-row items-center self-center">
 									{#if shiftKey && model.write_access}
 										<Tooltip content={model?.meta?.hidden ? $i18n.t('Show') : $i18n.t('Hide')}>
 											<button
@@ -841,20 +924,21 @@
 												on:click={(e) => {
 													e.preventDefault();
 													e.stopPropagation();
-													deleteModelHandler(model);
+													confirmDeleteModel(model);
 												}}
 											>
 												<GarbageBin className="size-4" />
 											</button>
 										</Tooltip>
 									{:else}
-										<div class="flex shrink-0 flex-row items-center gap-1.5 self-center">
+										<div class="flex shrink-0 flex-row items-center gap-1 self-center">
 											<ModelMenu
+												accessHandler={() => accessModal.open(model.id)}
 												user={$user}
 												{model}
 												writeAccess={model.write_access}
 												editHandler={() => {
-													goto(`${base}/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
+													goto(`/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
 												}}
 												shareHandler={() => {
 													shareModelHandler(model);
@@ -875,8 +959,7 @@
 													copyLinkHandler(model);
 												}}
 												deleteHandler={() => {
-													selectedModel = model;
-													showModelDeleteConfirm = true;
+													confirmDeleteModel(model);
 												}}
 												onClose={() => {}}
 											>
@@ -888,32 +971,20 @@
 											</ModelMenu>
 
 											{#if model.write_access}
-												<button
-													class="flex h-6 items-center"
-													type="button"
-													on:click={(e) => {
-														e.stopPropagation();
-														e.preventDefault();
-													}}
+												<Tooltip
+													content={updatingModels[model.id]
+														? $i18n.t('Saving...')
+														: model.is_active
+															? $i18n.t('Enabled')
+															: $i18n.t('Disabled')}
 												>
-													<Tooltip
-														content={model.is_active ? $i18n.t('Enabled') : $i18n.t('Disabled')}
-													>
-														<Switch
-															bind:state={model.is_active}
-															on:change={async () => {
-																toggleModelById(localStorage.token, model.id);
-																_models.set(
-																	await getModels(
-																		localStorage.token,
-																		$config?.features?.enable_direct_connections &&
-																			($settings?.directConnections ?? null)
-																	)
-																);
-															}}
-														/>
-													</Tooltip>
-												</button>
+													<Switch
+														bind:state={model.is_active}
+														disabled={updatingModels[model.id] ?? false}
+														ariaLabel={`${$i18n.t('Enabled')}: ${localizedModelName}`}
+														on:change={() => toggleModelHandler(model)}
+													/>
+												</Tooltip>
 											{/if}
 										</div>
 									{/if}
@@ -945,7 +1016,7 @@
 
 	{#if $config?.features.enable_community_sharing}
 		<CommunityDiscover
-			href="https://openwebui.com/models"
+			href="https://openwebui.com/search?type=model"
 			title={$i18n.t('Discover a model')}
 			description={$i18n.t('Discover, download, and explore model presets')}
 		/>

@@ -73,7 +73,7 @@
 		}
 	};
 
-	const sortState = (key) =>
+	const sortState = (key, orderBy, direction) =>
 		orderBy === key ? (direction === 'asc' ? 'ascending' : 'descending') : 'none';
 
 	const setSortKey = (key) => {
@@ -226,7 +226,11 @@
 		<table class="w-full text-sm text-left text-gray-500 dark:text-gray-400 table-auto max-w-full">
 			<thead class="text-xs text-gray-800 uppercase bg-transparent dark:text-gray-200">
 				<tr class=" border-b-[1.5px] border-gray-50 dark:border-gray-850/30">
-					<th scope="col" class="font-normal select-none" aria-sort={sortState('name')}>
+					<th
+						scope="col"
+						class="font-normal select-none"
+						aria-sort={sortState('name', orderBy, direction)}
+					>
 						<button
 							type="button"
 							class="flex w-full gap-1.5 items-center px-2.5 py-1.5"
@@ -249,7 +253,11 @@
 							{/if}
 						</button>
 					</th>
-					<th scope="col" class="font-normal select-none" aria-sort={sortState('role')}>
+					<th
+						scope="col"
+						class="font-normal select-none"
+						aria-sort={sortState('role', orderBy, direction)}
+					>
 						<button
 							type="button"
 							class="flex w-full gap-1.5 items-center px-2.5 py-1.5"
@@ -272,7 +280,11 @@
 							{/if}
 						</button>
 					</th>
-					<th scope="col" class="font-normal select-none" aria-sort={sortState('email')}>
+					<th
+						scope="col"
+						class="font-normal select-none"
+						aria-sort={sortState('email', orderBy, direction)}
+					>
 						<button
 							type="button"
 							class="flex w-full gap-1.5 items-center px-2.5 py-1.5"
@@ -296,7 +308,11 @@
 						</button>
 					</th>
 
-					<th scope="col" class="font-normal select-none" aria-sort={sortState('last_active_at')}>
+					<th
+						scope="col"
+						class="font-normal select-none"
+						aria-sort={sortState('last_active_at', orderBy, direction)}
+					>
 						<button
 							type="button"
 							class="flex w-full gap-1.5 items-center px-2.5 py-1.5"
@@ -320,7 +336,11 @@
 							{/if}
 						</button>
 					</th>
-					<th scope="col" class="font-normal select-none" aria-sort={sortState('created_at')}>
+					<th
+						scope="col"
+						class="font-normal select-none"
+						aria-sort={sortState('created_at', orderBy, direction)}
+					>
 						<button
 							type="button"
 							class="flex w-full gap-1.5 items-center px-2.5 py-1.5"
@@ -394,11 +414,15 @@
 						<td class=" px-3 py-1 max-w-48 truncate"> {user.email} </td>
 
 						<td class=" px-3 py-1">
-							{dayjs(user.last_active_at * 1000).fromNow()}
+							{dayjs(user.last_active_at * 1000)
+								.locale($i18n.language)
+								.fromNow()}
 						</td>
 
 						<td class=" px-3 py-1">
-							{dayjs(user.created_at * 1000).format('LL')}
+							{dayjs(user.created_at * 1000)
+								.locale($i18n.language)
+								.format('LL')}
 						</td>
 
 						<td class="px-3 py-1 text-right">

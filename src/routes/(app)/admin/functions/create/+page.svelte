@@ -42,7 +42,8 @@
 			id: data.id,
 			name: data.name,
 			meta: data.meta,
-			content: data.content
+			content: data.content,
+			commit_message: data.commit_message
 		}).catch((error) => {
 			toast.error(`${error}`);
 			return null;
@@ -65,7 +66,7 @@
 	};
 
 	onMount(() => {
-		if (!$config?.features?.enable_plugins) {
+		if (!$config?.features?.enable_functions) {
 			goto('/admin', { replaceState: true });
 			return;
 		}
@@ -102,9 +103,7 @@
 				meta={func?.meta ?? { description: '' }}
 				content={func?.content ?? ''}
 				{clone}
-				onSave={(value) => {
-					saveHandler(value);
-				}}
+				onSave={saveHandler}
 			/>
 		</div>
 	{/key}

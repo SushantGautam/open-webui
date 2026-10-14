@@ -19,7 +19,7 @@
 	import Tag from '$lib/components/icons/Tag.svelte';
 	import Label from '$lib/components/icons/Label.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
 
 	export let selectedModelIdx: number = -1;
 	export let item: any = {};
@@ -34,6 +34,7 @@
 	export let selectionOnly = false;
 
 	export let onClick: () => void = () => {};
+	export let onEdit: () => void = () => {};
 
 	$: localizedDescription = resolveLocalizedModelDescription(item.model, $i18n.language);
 
@@ -171,7 +172,9 @@
 							content={item.model.ollama?.expires_at &&
 							new Date(item.model.ollama?.expires_at * 1000) > new Date()
 								? `${$i18n.t('Unloads {{FROM_NOW}}', {
-										FROM_NOW: dayjs(item.model.ollama?.expires_at * 1000).fromNow()
+										FROM_NOW: dayjs(item.model.ollama?.expires_at * 1000)
+											.locale($i18n.language)
+											.fromNow()
 									})}`
 								: `${$i18n.t('Loaded')}`}
 							className="self-end"
@@ -305,6 +308,7 @@
 				model={item.model}
 				{pinModelHandler}
 				{deleteModelHandler}
+				{onEdit}
 				copyLinkHandler={() => {
 					copyLinkHandler(item.model);
 				}}

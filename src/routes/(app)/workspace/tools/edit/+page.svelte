@@ -41,6 +41,7 @@
 			name: data.name,
 			meta: data.meta,
 			content: data.content,
+			commit_message: data.commit_message,
 			access_grants: data.access_grants
 		}).catch((error) => {
 			toast.error(`${error}`);
@@ -53,6 +54,7 @@
 
 			// await goto(`${base}/workspace/tools`);
 		}
+		return res;
 	};
 
 	onMount(async () => {
@@ -89,9 +91,11 @@
 			meta={tool.meta}
 			content={tool.content}
 			accessGrants={tool.access_grants ?? []}
-			onSave={(value) => {
-				saveHandler(value);
+			version_id={tool.version_id}
+			onProduction={async () => {
+				tools.set(await getTools(localStorage.token));
 			}}
+			onSave={saveHandler}
 		/>
 	</div>
 {:else}
