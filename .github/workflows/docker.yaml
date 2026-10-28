@@ -66,18 +66,15 @@ jobs:
 
   build:
     needs: resolve-variants
-    runs-on: ${{ matrix.platform.runner }}
-    if: ${{ !inputs.prune_only && contains(needs.resolve-variants.outputs.variants, matrix.variant) }}
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.prune_only }}
     permissions:
       contents: read
       packages: write
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - arch: linux/amd64
-            runner: ubuntu-latest
-        variant: [main, cuda, cuda126, ollama, slim]
+        variant: ${{ fromJson(needs.resolve-variants.outputs.variants) }}
         include:
           - variant: main
             suffix: ""
@@ -107,11 +104,11 @@ jobs:
         run: |
           echo "IMAGE_NAME=${IMAGE_REPOSITORY,,}" >> ${GITHUB_ENV}
           echo "FULL_IMAGE_NAME=${REGISTRY}/${IMAGE_REPOSITORY,,}" >> ${GITHUB_ENV}
-          platform=${{ matrix.platform.arch }}
+          platform="linux/amd64"
           echo "PLATFORM_PAIR=${platform//\//-}" >> ${GITHUB_ENV}
 
       - name: Free disk space
-        if: matrix.variant.free_disk
+        if: matrix.free_disk
         run: rm -rf /opt/hostedtoolcache
 
       - name: Checkout repository
@@ -158,7 +155,7 @@ jobs:
             type=semver,pattern={{version}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
             type=semver,pattern={{major}}.{{minor}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
             ${{ format('type=raw,enable={0},value=latest{1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.combined_suffix) }}
-            ${{ matrix.variant.suffix != '' && format('type=raw,enable={0},value={1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.alias_tag) || '' }}
+            ${{ matrix.suffix != '' && format('type=raw,enable={0},value={1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.alias_tag) || '' }}
           flavor: |
             latest=false
 
@@ -171,7 +168,7 @@ jobs:
             type=ref,event=branch
             ${{ github.ref_type == 'tag' && 'type=raw,value=main' || '' }}
           flavor: |
-            prefix=cache-${{ matrix.variant.name }}-${{ matrix.platform.arch }}-
+            prefix=cache-${{ matrix.variant }}-linux-amd64-
             latest=false
 
       - name: Validate WEBUI_SUBPATH
@@ -194,8 +191,8 @@ jobs:
         id: tag-context
         env:
           WEBUI_SUBPATH_INPUT: ${{ inputs.webui_subpath }}
-          VARIANT_NAME: ${{ matrix.variant.name }}
-          VARIANT_SUFFIX: ${{ matrix.variant.suffix }}
+          VARIANT_NAME: ${{ matrix.variant }}
+          VARIANT_SUFFIX: ${{ matrix.suffix }}
         run: |
           subpath_suffix=""
           alias_tag="$VARIANT_NAME"
@@ -218,7 +215,7 @@ jobs:
           context: .
           file: ${{ runner.temp }}/Dockerfile
           push: true
-          platforms: ${{ matrix.platform.arch }}
+          platforms: linux/amd64
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.FULL_IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=registry,ref=${{ steps.cache-meta.outputs.tags }}
@@ -228,7 +225,7 @@ jobs:
             BUILD_HASH=${{ github.sha }}
             BUILD_CHANNEL=${{ github.ref == 'refs/heads/dev' && 'dev' || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'main' || 'unknown' }}
             WEBUI_SUBPATH=${{ inputs.webui_subpath }}
-            ${{ matrix.variant.build_args }}
+            ${{ matrix.build_args }}
 
       - name: Export digest
         run: |
@@ -239,7 +236,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.variant.name }}-${{ env.PLATFORM_PAIR }}
+          name: digests-${{ matrix.variant }}-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -277,7 +274,7 @@ jobs:
         id: download
         uses: actions/download-artifact@v5
         with:
-          pattern: digests-${{ matrix.variant.name }}-*
+          pattern: digests-${{ matrix.variant }}-*
           path: /tmp/digests
           merge-multiple: true
         continue-on-error: true
@@ -288,7 +285,7 @@ jobs:
           count=$(find /tmp/digests -type f 2>/dev/null | wc -l | tr -d ' ')
           echo "digest_count=$count" >> $GITHUB_OUTPUT
           if [ "$count" -lt 2 ]; then
-            echo "::warning::${{ matrix.variant.name }}: found $count digest(s), need 2 (one per arch). Skipping merge."
+            echo "::warning::${{ matrix.variant }}: found $count digest(s), need 2 (one per arch). Skipping merge."
             echo "skip=true" >> $GITHUB_OUTPUT
           else
             echo "skip=false" >> $GITHUB_OUTPUT
@@ -316,8 +313,8 @@ jobs:
         id: tag-context
         env:
           WEBUI_SUBPATH_INPUT: ${{ inputs.webui_subpath }}
-          VARIANT_NAME: ${{ matrix.variant.name }}
-          VARIANT_SUFFIX: ${{ matrix.variant.suffix }}
+          VARIANT_NAME: ${{ matrix.variant }}
+          VARIANT_SUFFIX: ${{ matrix.suffix }}
         run: |
           subpath_suffix=""
           alias_tag="$VARIANT_NAME"
@@ -346,7 +343,7 @@ jobs:
             type=semver,pattern={{version}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
             type=semver,pattern={{major}}.{{minor}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
             ${{ format('type=raw,enable={0},value=latest{1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.combined_suffix) }}
-            ${{ matrix.variant.suffix != '' && format('type=raw,enable={0},value={1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.alias_tag) || '' }}
+            ${{ matrix.suffix != '' && format('type=raw,enable={0},value={1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.alias_tag) || '' }}
           flavor: |
             latest=false
 
