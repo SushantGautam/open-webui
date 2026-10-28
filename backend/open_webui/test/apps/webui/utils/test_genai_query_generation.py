@@ -6,7 +6,7 @@ import pytest
 from fastapi.responses import JSONResponse
 from open_webui.utils.telemetry.genai.config import GenAIConfig
 from open_webui.utils.telemetry.genai.inference import traced_inference
-from open_webui.utils.telemetry.genai.query import traced_query_generation
+from open_webui.utils.telemetry.genai.query import traced_query_generation, traced_rag_retrieval
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
@@ -95,7 +95,7 @@ async def test_content_capture_requires_each_independent_opt_in_and_is_bounded()
     await generate_queries(request(), form_data())
     span = exporter.get_finished_spans()[0]
     assert span.attributes['openwebui.query.original'] == 'secret o'
-    assert span.attributes['openwebui.query.generated'] == 'rewritte'
+    assert span.attributes['openwebui.query.generated'] == '["rewrit'
 
     tracer, exporter = setup_tracer(GenAIConfig(capture_outputs=True))
 
@@ -106,7 +106,7 @@ async def test_content_capture_requires_each_independent_opt_in_and_is_bounded()
     await generate_queries(request(), form_data())
     span = exporter.get_finished_spans()[0]
     assert 'openwebui.query.original' not in span.attributes
-    assert span.attributes['openwebui.query.generated'] == 'rewritten query'
+    assert span.attributes['openwebui.query.generated'] == '["rewritten query"]'
 
 
 @pytest.mark.asyncio
@@ -178,3 +178,65 @@ async def test_json_response_and_retrieval_type_are_supported():
     assert span.attributes['openwebui.query.type'] == 'retrieval'
     assert span.attributes['openwebui.query.generated_count'] == 2
     assert 'alpha' in span.attributes['openwebui.query.generated']
+
+
+@pytest.mark.asyncio
+async def test_default_prompt_json_object_tracks_real_query_count():
+    tracer, exporter = setup_tracer(GenAIConfig(capture_outputs=True))
+
+    @traced_query_generation(tracer)
+    async def generate_queries(request, form_data):
+        return {
+            'choices': [{
+                'message': {
+                    'content': '{"queries": ["first rewritten query", "second rewritten query"]}'
+                }
+            }]
+        }
+
+    await generate_queries(request(), form_data())
+    span = exporter.get_finished_spans()[0]
+    assert span.attributes['openwebui.query.generated_count'] == 2
+    assert 'first rewritten query' in span.attributes['openwebui.query.generated']
+    assert 'second rewritten query' in span.attributes['openwebui.query.generated']
+
+
+@pytest.mark.asyncio
+async def test_rag_parent_groups_query_generation_and_vector_retrieval():
+    tracer, exporter = setup_tracer()
+
+    @traced_query_generation(tracer)
+    async def generate_queries(request, form_data):
+        return {'choices': [{'message': {'content': '{"queries": ["rewritten"]}'}}]}
+
+    @traced_rag_retrieval(tracer)
+    async def retrieval_flow(request, body, extra_params, user):
+        await generate_queries(request, form_data())
+        with tracer.retrieval('retrieval', operation_name='retrieval', retrieval_query='rewritten'):
+            pass
+        return body, {'sources': []}
+
+    body = {'metadata': {'files': [{'type': 'file', 'id': 'one'}], 'chat_id': 'chat-123'}}
+    result = await retrieval_flow(request(), body, {}, None)
+    assert result[0] is body
+    spans = exporter.get_finished_spans()
+    assert [span.name for span in spans] == ['query_generation', 'retrieval', 'rag.retrieval']
+    parent = spans[-1]
+    assert parent.attributes['gen_ai.conversation.id'] == 'chat-123'
+    assert 'gen_ai.operation.name' not in parent.attributes
+    assert spans[0].parent.span_id == parent.context.span_id
+    assert spans[1].parent.span_id == parent.context.span_id
+
+
+@pytest.mark.asyncio
+async def test_rag_parent_skips_empty_file_context():
+    tracer, exporter = setup_tracer()
+
+    @traced_rag_retrieval(tracer)
+    async def retrieval_flow(request, body, extra_params, user):
+        return body, {'sources': []}
+
+    body = {'metadata': {'files': []}}
+    result = await retrieval_flow(request(), body, {}, None)
+    assert result[0] is body
+    assert exporter.get_finished_spans() == ()
