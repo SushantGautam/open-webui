@@ -10,7 +10,6 @@ from aiohttp import (
 from fastapi import FastAPI, status
 from open_webui.utils.telemetry.constants import SPAN_REDIS_TYPE, SpanAttributes
 from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import (
     HTTPXClientInstrumentor,
     RequestInfo,
@@ -174,7 +173,11 @@ class Instrumentor(BaseInstrumentor):
         return []
 
     def _instrument(self, **kwargs):
-        FastAPIInstrumentor.instrument_app(app=self.app)
+        # NOTE: FastAPIInstrumentor.instrument_app() is intentionally NOT used.
+        # It wraps the entire ASGI app with a tracing middleware that breaks
+        # WebSocket (Socket.IO) connections by intercepting websocket.accept.
+        # HTTP request tracing is handled by our custom workflow spans in
+        # main.py (invoke_workflow open-webui.chat) instead.
         SQLAlchemyInstrumentor().instrument(engine=self.db_engine)
         RedisInstrumentor().instrument(request_hook=redis_request_hook)
         RequestsInstrumentor().instrument(request_hook=requests_hook, response_hook=response_hook)
