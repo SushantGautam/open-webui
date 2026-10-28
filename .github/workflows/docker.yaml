@@ -77,8 +77,6 @@ jobs:
         platform:
           - arch: linux/amd64
             runner: ubuntu-latest
-          - arch: linux/arm64
-            runner: ubuntu-24.04-arm
         variant: ${{ fromJson(needs.resolve-variants.outputs.variants) }}
         include:
           - variant: main
