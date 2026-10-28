@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-10-28
+
+### Added
+
+- 🔭 **OTel query-generation and RAG tracing (fork).** RAG query generation now runs under an OpenTelemetry task span (`invoke_agent open-webui.query_generation`), and query generation plus vector retrieval are nested under a single RAG span, so rewritten queries and the retrieved chunks show up in one trace. Native Ollama chat calls are traced with their token usage, and the default query-generation JSON payload is recorded behind the content-capture privacy gates.
+
 ## [0.12.0] - 2026-10-10
 
 ### Added
