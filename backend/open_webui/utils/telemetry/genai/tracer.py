@@ -30,6 +30,10 @@ class GenAITracer:
     def workflow(self, name='invoke_workflow', **attrs):
         return self._span('workflow', name, **attrs)
 
+    def task(self, name, **attrs):
+        """Trace an application-level task without labeling it a GenAI workflow."""
+        return self._span('task', name, **attrs)
+
     def inference(self, name='inference', **attrs):
         return self._span('inference', name, **attrs)
 
