@@ -144,6 +144,7 @@ from open_webui.utils.task import (
     tools_function_calling_generation_template,
 )
 from open_webui.utils.tool_approval import complete_tool_call, pending_tool_calls
+from open_webui.utils.telemetry.genai.query import traced_rag_retrieval
 from open_webui.utils.telemetry.genai.tools import traced_tool
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
 from open_webui.utils.tool_approval import complete_tool_call, pending_tool_calls
@@ -2081,6 +2082,7 @@ async def chat_image_generation_handler(request: Request, form_data: dict, extra
     return form_data
 
 
+@traced_rag_retrieval(ai_tracer)
 async def chat_completion_files_handler(
     request: Request, body: dict, extra_params: dict, user: UserModel
 ) -> tuple[dict, dict[str, list]]:
