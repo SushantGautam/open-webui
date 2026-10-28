@@ -22,18 +22,18 @@ async def traced_tool(
     call: Callable[[], Awaitable],
 ):
     with tracer.tool(
-        'execute_tool',
+        name,
         operation_name='execute_tool',
         tool_name=name,
         tool_call_id=call_id,
         tool_type=classify_tool(tool_type, direct),
-        tool_arguments=arguments,
+        inputs=arguments,
     ) as span:
         result = await call()
-        if span.is_recording() and tracer.config.capture_tool_results and result is not None:
+        if span.is_recording() and tracer.config.capture_outputs and result is not None:
             from open_webui.utils.telemetry.genai.extractors import capture
 
             value = capture(result, enabled=True, config=tracer.config)
             if value is not None:
-                span.set_attribute(semconv.GEN_AI_TOOL_CALL_RESULT, value)
+                span.set_attribute('gen_ai.output.messages', value)
         return result

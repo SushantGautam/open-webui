@@ -1818,6 +1818,7 @@ async def chat_completion(
             conversation_id=metadata.get('chat_id'),
             message_id=metadata.get('message_id'),
             purpose='primary',
+            inputs=(lambda m: m.get('content') if isinstance(m, dict) else m)(metadata.get('user_message')),
             _defer_end=True,
         ) as workflow_span:
             result = await _process_chat(request, form_data, user, metadata, model, tasks)

@@ -2177,7 +2177,7 @@ async def chat_completion_files_handler(
 
         unique_ids = set()
         for source in sources or []:
-            if not source or len(source.keys()) == 0:
+            if not source or not isinstance(source, dict) or len(source.keys()) == 0:
                 continue
 
             documents = source.get('document') or []

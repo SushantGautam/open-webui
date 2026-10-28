@@ -1300,6 +1300,9 @@ ENABLE_OTEL = os.getenv('ENABLE_OTEL', 'False').lower() == 'true'
 ENABLE_OTEL_TRACES = os.getenv('ENABLE_OTEL_TRACES', 'False').lower() == 'true'
 ENABLE_OTEL_METRICS = os.getenv('ENABLE_OTEL_METRICS', 'False').lower() == 'true'
 ENABLE_OTEL_LOGS = os.getenv('ENABLE_OTEL_LOGS', 'False').lower() == 'true'
+# When False (default), only GenAI spans are emitted; infrastructure spans
+# (HTTP requests, DB connects, Redis, system metrics) are suppressed.
+ENABLE_OTEL_INFRASTRUCTURE = os.getenv('ENABLE_OTEL_INFRASTRUCTURE', 'False').lower() == 'true'
 
 OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'http://localhost:4317')
 OTEL_METRICS_EXPORTER_OTLP_ENDPOINT = os.getenv('OTEL_METRICS_EXPORTER_OTLP_ENDPOINT', OTEL_EXPORTER_OTLP_ENDPOINT)
