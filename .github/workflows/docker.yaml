@@ -39,8 +39,11 @@ jobs:
       - id: filter
         run: |
           ALL='["main","cuda","cuda126","ollama","slim"]'
+          DEFAULT='["main"]'
           SELECTED='${{ inputs.variants }}'
-          if [ -z "$SELECTED" ] || [ "$SELECTED" = "all" ]; then
+          if [ -z "$SELECTED" ]; then
+            echo "variants=$DEFAULT" >> "$GITHUB_OUTPUT"
+          elif [ "$SELECTED" = "all" ]; then
             echo "variants=$ALL" >> "$GITHUB_OUTPUT"
           else
             # Build JSON array of only the selected variants
@@ -80,24 +83,6 @@ jobs:
           - variant: main
             suffix: ""
             build_args: ""
-            free_disk: false
-          - variant: cuda
-            suffix: "-cuda"
-            build_args: "USE_CUDA=true"
-            free_disk: true
-          - variant: cuda126
-            suffix: "-cuda126"
-            build_args: |
-              USE_CUDA=true
-              USE_CUDA_VER=cu126
-            free_disk: true
-          - variant: ollama
-            suffix: "-ollama"
-            build_args: "USE_OLLAMA=true"
-            free_disk: false
-          - variant: slim
-            suffix: "-slim"
-            build_args: "USE_SLIM=true"
             free_disk: false
 
     steps:
@@ -256,14 +241,6 @@ jobs:
         include:
           - variant: main
             suffix: ""
-          - variant: cuda
-            suffix: "-cuda"
-          - variant: cuda126
-            suffix: "-cuda126"
-          - variant: ollama
-            suffix: "-ollama"
-          - variant: slim
-            suffix: "-slim"
 
     steps:
       - name: Prepare environment
