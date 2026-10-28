@@ -97,3 +97,31 @@ local test system.
   its generation view only after recognizing the standard GenAI attributes.
 - Jaeger and Tempo generally show the generic trace tree and attributes but do
   not provide vendor-specific GenAI generation summaries.
+
+## Query generation
+
+The `/tasks/queries/completions` endpoint emits an internal
+`query_generation` span covering template preparation, task-model selection,
+pipeline filtering, cached-query reuse, and model inference. A model call
+appears underneath as a standard `chat {model}` span with
+`gen_ai.operation.name=chat`, provider/model information, token usage (when
+returned by the provider), and the existing
+`openwebui.operation.purpose=retrieval_query` classification. Native Ollama
+`/api/chat` is instrumented alongside OpenAI-compatible chat endpoints.
+
+The application task span contains `openwebui.query.type` (`web_search`
+or `retrieval`), `openwebui.query.cached`, `gen_ai.conversation.id`
+when available, and `openwebui.query.generated_count` when the model or
+cache returns a JSON array of queries. Query content is never sent by default:
+
+- `openwebui.query.original` requires `OTEL_GENAI_CAPTURE_RETRIEVAL_QUERY=true`.
+- `openwebui.query.generated` requires `OTEL_GENAI_CAPTURE_OUTPUTS=true`.
+- Both are truncated using `OTEL_GENAI_CONTENT_MAX_LENGTH`.
+
+Query generation is a standalone application task, not a retrieval request
+or a multi-step GenAI workflow. Therefore its span deliberately does not
+claim `gen_ai.operation.name=retrieval` or `invoke_workflow`. Subsequent
+actual search/retrieval spans retain their existing `retrieval` semantics.
+A separate HTTP request creates a separate trace unless the client
+propagates a parent W3C trace context; `gen_ai.conversation.id` allows
+cross-request grouping by conversation without fabricating trace parents.
