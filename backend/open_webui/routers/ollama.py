@@ -200,7 +200,7 @@ async def send_request(
     api_config: dict | None = None,
     request: Request | None = None,
 ):
-    if '/chat/completions' not in url:
+    if '/chat/completions' not in url and '/api/chat' not in url:
         return await _send_request(
             url,
             method,
