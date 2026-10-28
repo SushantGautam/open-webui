@@ -1,7 +1,0 @@
-:3000 {
-	handle_path /chat/* {
-		reverse_proxy 172.19.0.2:8080
-	}
-
-	rewrite * /chat/
-}
