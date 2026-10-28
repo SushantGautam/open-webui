@@ -132,3 +132,41 @@ async def test_streaming_output_is_captured_after_body_iteration():
 
 async def _return(value):
     return value
+
+
+@pytest.mark.asyncio
+async def test_native_ollama_completion_carries_standard_usage_and_output():
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    tracer = GenAITracer(
+        provider.get_tracer('ollama-native-test'),
+        GenAIConfig(capture_outputs=True),
+    )
+
+    async def call():
+        return {
+            'model': 'llama3',
+            'prompt_eval_count': 21,
+            'eval_count': 7,
+            'done_reason': 'stop',
+            'message': {'role': 'assistant', 'content': 'rewritten'},
+        }
+
+    await traced_inference(
+        tracer,
+        provider='ollama',
+        request_payload={
+            'model': 'llama3',
+            'metadata': {'task': 'query_generation'},
+        },
+        call=call,
+    )
+    span = exporter.get_finished_spans()[0]
+    assert span.name == 'chat llama3'
+    assert span.attributes['gen_ai.operation.name'] == 'chat'
+    assert span.attributes['openwebui.operation.purpose'] == 'retrieval_query'
+    assert span.attributes['gen_ai.usage.input_tokens'] == 21
+    assert span.attributes['gen_ai.usage.output_tokens'] == 7
+    assert span.attributes['gen_ai.response.finish_reasons'] == ('stop',)
+    assert 'rewritten' in span.attributes['gen_ai.output.messages']

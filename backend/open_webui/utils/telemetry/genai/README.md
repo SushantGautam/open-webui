@@ -97,3 +97,33 @@ local test system.
   its generation view only after recognizing the standard GenAI attributes.
 - Jaeger and Tempo generally show the generic trace tree and attributes but do
   not provide vendor-specific GenAI generation summaries.
+
+## Query generation
+
+For chats with file/knowledge context, the application emits an internal
+`rag.retrieval` span enclosing query generation followed by the already
+instrumented `retrieval` span (including optional embedding and reranking).
+The `/tasks/queries/completions` endpoint emits an internal
+`query_generation` span covering template preparation, task-model selection,
+pipeline filtering, cached-query reuse, and model inference. A model call
+appears underneath as a standard `chat {model}` span with
+`gen_ai.operation.name=chat`, provider/model information, token usage (when
+returned by the provider), and the existing
+`openwebui.operation.purpose=retrieval_query` classification. Native Ollama
+`/api/chat` is instrumented alongside OpenAI-compatible chat endpoints.
+
+The application task span contains `openwebui.query.type` (`web_search`
+or `retrieval`), `openwebui.query.cached`, `gen_ai.conversation.id`
+when available, and `openwebui.query.generated_count` when the model or
+cache returns an array of queries, including the default model response\nformat `{\"queries\": [...]}`. Query content is never sent by default:
+
+- `openwebui.query.original` requires `OTEL_GENAI_CAPTURE_RETRIEVAL_QUERY=true`.
+- `openwebui.query.generated` requires `OTEL_GENAI_CAPTURE_OUTPUTS=true`.
+- Both are truncated using `OTEL_GENAI_CONTENT_MAX_LENGTH`.
+
+Query generation is a standalone application task, not a retrieval request
+or a multi-step GenAI workflow. Therefore its span deliberately does not
+claim `gen_ai.operation.name=retrieval` or `invoke_workflow`. Subsequent\nactual search/retrieval spans retain their existing `retrieval` semantics.\nThe enclosing `rag.retrieval` span also remains an internal task, without\nclaiming a separate `gen_ai.operation.name`.
+A separate HTTP request creates a separate trace unless the client
+propagates a parent W3C trace context; `gen_ai.conversation.id` allows
+cross-request grouping by conversation without fabricating trace parents.
