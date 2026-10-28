@@ -40,17 +40,32 @@ def _generated_content(response):
     return None
 
 
-def _query_count(content):
+def _parse_queries(content):
+    """Extract query candidates from the native task-model response format.
+
+    The default Open WebUI prompt returns {"queries": [...]}, optionally
+    wrapped in surrounding prose; cached values are already lists.
+    """
     if isinstance(content, list):
-        return len(content)
+        return [query for query in content if isinstance(query, str)]
     if isinstance(content, str):
         try:
-            parsed = json.loads(content)
+            value = json.loads(content)
         except ValueError:
-            return None
-        if isinstance(parsed, list):
-            return len(parsed)
+            start, end = content.rfind('{'), content.rfind('}')
+            if start >= 0 and end > start:
+                try:
+                    value = json.loads(content[start : end + 1])
+                except ValueError:
+                    return [content] if content.strip() else []
+            else:
+                return [content] if content.strip() else []
+        if isinstance(value, dict):
+            value = value.get('queries')
+        if isinstance(value, list):
+            return [query for query in value if isinstance(query, str)]
     return None
+
 
 
 def traced_query_generation(tracer):
@@ -90,11 +105,11 @@ def traced_query_generation(tracer):
                     if getattr(result, 'status_code', 200) >= 400:
                         span.set_status(StatusCode.ERROR)
                     generated = _generated_content(result)
-                    count = _query_count(generated)
-                    if count is not None:
-                        span.set_attribute(semconv.OPENWEBUI_QUERY_GENERATED_COUNT, count)
+                    queries = _parse_queries(generated)
+                    if queries is not None:
+                        span.set_attribute(semconv.OPENWEBUI_QUERY_GENERATED_COUNT, len(queries))
                     output = capture(
-                        generated,
+                        queries if queries is not None else generated,
                         enabled=tracer.config.capture_outputs,
                         config=tracer.config,
                     )
