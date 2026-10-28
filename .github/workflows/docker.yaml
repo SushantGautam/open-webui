@@ -84,6 +84,25 @@ jobs:
             suffix: ""
             build_args: ""
             free_disk: false
+          # To enable other variants, uncomment and pass e.g. variants="main,cuda":
+          # - variant: cuda
+          #   suffix: "-cuda"
+          #   build_args: "USE_CUDA=true"
+          #   free_disk: true
+          # - variant: cuda126
+          #   suffix: "-cuda126"
+          #   build_args: |
+          #     USE_CUDA=true
+          #     USE_CUDA_VER=cu126
+          #   free_disk: true
+          # - variant: ollama
+          #   suffix: "-ollama"
+          #   build_args: "USE_OLLAMA=true"
+          #   free_disk: false
+          # - variant: slim
+          #   suffix: "-slim"
+          #   build_args: "USE_SLIM=true"
+          #   free_disk: false
 
     steps:
       - name: Prepare environment
@@ -241,6 +260,15 @@ jobs:
         include:
           - variant: main
             suffix: ""
+          # Uncomment to match build job variants:
+          # - variant: cuda
+          #   suffix: "-cuda"
+          # - variant: cuda126
+          #   suffix: "-cuda126"
+          # - variant: ollama
+          #   suffix: "-ollama"
+          # - variant: slim
+          #   suffix: "-slim"
 
     steps:
       - name: Prepare environment
