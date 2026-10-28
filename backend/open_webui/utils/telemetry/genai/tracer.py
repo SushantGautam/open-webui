@@ -66,6 +66,16 @@ class GenAITracer:
                 }
                 if response.get('done_reason') and not attributes[semconv.GEN_AI_RESPONSE_FINISH_REASONS]:
                     attributes[semconv.GEN_AI_RESPONSE_FINISH_REASONS] = [response['done_reason']]
+                # Mark agent decision steps (LLM calls that produce tool_calls)
+                choices = response.get('choices') or []
+                has_tool_calls = any(
+                    (c.get('message') or {}).get('tool_calls') or c.get('tool_calls')
+                    for c in choices if isinstance(c, dict)
+                )
+                if has_tool_calls:
+                    attributes['studio.agent.step'] = True
+                else:
+                    attributes['studio.role'] = 'answer'
                 span.set_attributes({key: value for key, value in attributes.items() if value is not None})
                 if self.config.capture_outputs:
                     output = _response_output(response)
@@ -76,12 +86,17 @@ class GenAITracer:
         except Exception:
             logger.exception('Unable to finish GenAI inference span')
 
-    def finish_stream(self, span, chunks):
+    def finish_stream(self, span, chunks, *, agent_step=False):
         try:
-            if span.is_recording() and self.config.capture_outputs and chunks:
-                captured = extractors.capture(''.join(chunks), enabled=True, config=self.config)
-                if captured is not None:
-                    span.set_attribute(semconv.GEN_AI_OUTPUT_MESSAGES, captured)
+            if span.is_recording():
+                if agent_step:
+                    span.set_attribute('studio.agent.step', True)
+                else:
+                    span.set_attribute('studio.role', 'answer')
+                if self.config.capture_outputs and chunks:
+                    captured = extractors.capture(''.join(chunks), enabled=True, config=self.config)
+                    if captured is not None:
+                        span.set_attribute(semconv.GEN_AI_OUTPUT_MESSAGES, captured)
         except Exception:
             logger.exception('Unable to finish GenAI streaming span')
 

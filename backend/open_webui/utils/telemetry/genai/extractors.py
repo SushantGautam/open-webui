@@ -8,7 +8,9 @@ def _truncate(value, limit: int):
         return None
     if not isinstance(value, str):
         value = json.dumps(value, ensure_ascii=False, default=str)
-    return value[:limit]
+    if len(value) > limit:
+        return f'... [truncated: {len(value)} chars total, showing last {limit}]\n' + value[-limit:]
+    return value
 
 
 def capture(value, *, enabled: bool, config: GenAIConfig):

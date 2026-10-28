@@ -2,6 +2,7 @@ from base64 import b64encode
 
 from fastapi import FastAPI
 from open_webui.env import (
+    ENABLE_OTEL_INFRASTRUCTURE,
     ENABLE_OTEL_METRICS,
     ENABLE_OTEL_TRACES,
     OTEL_BASIC_AUTH_PASSWORD,
@@ -35,7 +36,7 @@ def setup(app: FastAPI, db_engine: Engine):
         if OTEL_BASIC_AUTH_USERNAME and OTEL_BASIC_AUTH_PASSWORD:
             auth_string = f'{OTEL_BASIC_AUTH_USERNAME}:{OTEL_BASIC_AUTH_PASSWORD}'
             auth_header = b64encode(auth_string.encode()).decode()
-            headers = [('authorization', f'Basic {auth_header}')]
+            headers = {'authorization': f'Basic {auth_header}'}
 
         # otlp export
         if OTEL_OTLP_SPAN_EXPORTER == 'http':
@@ -50,7 +51,8 @@ def setup(app: FastAPI, db_engine: Engine):
                 headers=headers,
             )
         trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(exporter))
-        Instrumentor(app=app, db_engine=db_engine).instrument()
+        if ENABLE_OTEL_INFRASTRUCTURE:
+            Instrumentor(app=app, db_engine=db_engine).instrument()
 
     # set up metrics only if enabled
     if ENABLE_OTEL_METRICS:

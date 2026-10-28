@@ -63,7 +63,11 @@ def traced_retrieval(tracer: GenAITracer):
                 if span.is_recording() and isinstance(result, list):
                     documents = []
                     for rank, source in enumerate(result[: tracer.config.retrieval_max_documents], 1):
+                        if not isinstance(source, dict):
+                            continue
                         metadata = source.get('metadata') or {}
+                        if not isinstance(metadata, dict):
+                            metadata = {}
                         distances = source.get('distances') or []
                         entry = {
                             'document_id': metadata.get('document_id') or metadata.get('id'),
