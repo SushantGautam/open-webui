@@ -67,7 +67,7 @@ jobs:
   build:
     needs: resolve-variants
     runs-on: ${{ matrix.platform.runner }}
-    if: ${{ !inputs.prune_only }}
+    if: ${{ !inputs.prune_only && contains(needs.resolve-variants.outputs.variants, matrix.variant) }}
     permissions:
       contents: read
       packages: write
@@ -77,7 +77,7 @@ jobs:
         platform:
           - arch: linux/amd64
             runner: ubuntu-latest
-        variant: ${{ fromJson(needs.resolve-variants.outputs.variants) }}
+        variant: [main, cuda, cuda126, ollama, slim]
         include:
           - variant: main
             suffix: ""
