@@ -14,9 +14,9 @@ on:
         default: false
         type: boolean
       variants:
-        description: 'Comma-separated variants to build (e.g. "main"). Leave empty for all.'
+        description: 'Comma-separated variants to build. Default: main (what SimpleAuditStudio needs). Use "main,cuda,slim" etc. for more.'
         required: false
-        default: ''
+        default: 'main'
         type: string
   # Dispatch-only: pushes must not trigger full matrix builds. Publish
   # explicitly with `gh workflow run docker.yaml` (see FORK.md).
@@ -40,7 +40,7 @@ jobs:
         run: |
           ALL='["main","cuda","cuda126","ollama","slim"]'
           SELECTED='${{ inputs.variants }}'
-          if [ -z "$SELECTED" ]; then
+          if [ -z "$SELECTED" ] || [ "$SELECTED" = "all" ]; then
             echo "variants=$ALL" >> "$GITHUB_OUTPUT"
           else
             # Build JSON array of only the selected variants
