@@ -35,6 +35,11 @@ GEN_AI_EMBEDDINGS = _official('GEN_AI_EMBEDDINGS', 'gen_ai.embeddings')
 
 OPENWEBUI_MESSAGE_ID = 'openwebui.message.id'
 OPENWEBUI_OPERATION_PURPOSE = 'openwebui.operation.purpose'
+OPENWEBUI_QUERY_TYPE = 'openwebui.query.type'
+OPENWEBUI_QUERY_CACHED = 'openwebui.query.cached'
+OPENWEBUI_QUERY_ORIGINAL = 'openwebui.query.original'
+OPENWEBUI_QUERY_GENERATED = 'openwebui.query.generated'
+OPENWEBUI_QUERY_GENERATED_COUNT = 'openwebui.query.generated_count'
 OPENWEBUI_TOOL_TYPE = 'openwebui.tool.type'
 OPENWEBUI_RETRIEVAL_MODE = 'openwebui.retrieval.mode'
 OPENWEBUI_RETRIEVAL_TOP_K = 'openwebui.retrieval.top_k'

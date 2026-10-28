@@ -22,6 +22,8 @@ from open_webui.routers.pipelines import process_pipeline_inlet_filter
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.chat import generate_chat_completion
 from open_webui.utils.payload import apply_params_to_form_data
+from open_webui.utils.telemetry.genai.query import traced_query_generation
+from open_webui.utils.telemetry.genai.tracer import GenAITracer
 from open_webui.utils.task import (
     autocomplete_generation_template,
     emoji_generation_template,
@@ -36,6 +38,7 @@ from open_webui.utils.task import (
 from pydantic import BaseModel
 
 log = logging.getLogger(__name__)
+ai_tracer = GenAITracer()
 
 router = APIRouter()
 
@@ -405,6 +408,7 @@ async def generate_image_prompt(request: Request, form_data: dict, user=Depends(
 
 
 @router.post('/queries/completions')
+@traced_query_generation(ai_tracer)
 async def generate_queries(request: Request, form_data: dict, user=Depends(get_verified_user)):
     type = form_data.get('type')
     if type == 'web_search':

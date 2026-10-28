@@ -13,7 +13,8 @@ async def traced_inference(
 ):
     metadata = request_payload.get('metadata') or {}
     with tracer.inference(
-        'chat_completion',
+        f"chat {request_payload.get('model') or 'unknown'}",
+        operation_name='chat',
         provider=provider,
         request_model=request_payload.get('model'),
         inputs=request_payload.get('messages'),

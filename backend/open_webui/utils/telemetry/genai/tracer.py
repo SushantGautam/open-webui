@@ -30,6 +30,10 @@ class GenAITracer:
     def workflow(self, name='invoke_workflow', **attrs):
         return self._span('workflow', name, **attrs)
 
+    def task(self, name, **attrs):
+        """Trace an application-level task without labeling it a GenAI workflow."""
+        return self._span('task', name, **attrs)
+
     def inference(self, name='inference', **attrs):
         return self._span('inference', name, **attrs)
 
@@ -52,14 +56,16 @@ class GenAITracer:
                 attributes = {
                     semconv.GEN_AI_RESPONSE_MODEL: response.get('model'),
                     semconv.GEN_AI_RESPONSE_ID: response.get('id'),
-                    semconv.GEN_AI_USAGE_INPUT_TOKENS: usage.get('prompt_tokens', usage.get('input_tokens')),
-                    semconv.GEN_AI_USAGE_OUTPUT_TOKENS: usage.get('completion_tokens', usage.get('output_tokens')),
+                    semconv.GEN_AI_USAGE_INPUT_TOKENS: usage.get('prompt_tokens', usage.get('input_tokens', response.get('prompt_eval_count'))),
+                    semconv.GEN_AI_USAGE_OUTPUT_TOKENS: usage.get('completion_tokens', usage.get('output_tokens', response.get('eval_count'))),
                     semconv.GEN_AI_RESPONSE_FINISH_REASONS: [
                         choice.get('finish_reason')
                         for choice in response.get('choices', [])
                         if isinstance(choice, dict) and choice.get('finish_reason') is not None
                     ],
                 }
+                if response.get('done_reason') and not attributes[semconv.GEN_AI_RESPONSE_FINISH_REASONS]:
+                    attributes[semconv.GEN_AI_RESPONSE_FINISH_REASONS] = [response['done_reason']]
                 span.set_attributes({key: value for key, value in attributes.items() if value is not None})
                 if self.config.capture_outputs:
                     output = _response_output(response)
@@ -153,4 +159,4 @@ def _response_output(response):
             messages.append(message)
     if messages:
         return messages
-    return response.get('output') or response.get('response')
+    return response.get('message') or response.get('output') or response.get('response')

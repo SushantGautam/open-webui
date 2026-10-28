@@ -200,7 +200,7 @@ async def send_request(
     api_config: dict | None = None,
     request: Request | None = None,
 ):
-    if '/chat/completions' not in url:
+    if '/chat/completions' not in url and '/api/chat' not in url:
         return await _send_request(
             url,
             method,
@@ -219,6 +219,9 @@ async def send_request(
         request_payload = JSONCodec.loads(payload) if isinstance(payload, (str, bytes)) else (payload or {})
     except Exception:
         request_payload = {}
+    # Ollama's native chat handler strips Open WebUI metadata before sending
+    # the provider payload. Restore it only in this local tracing snapshot.
+    request_payload = {**request_payload, 'metadata': metadata or request_payload.get('metadata') or {}}
 
     async def call():
         return await _send_request(
