@@ -120,3 +120,29 @@ def traced_query_generation(tracer):
         return wrapped
 
     return decorator
+
+
+def traced_rag_retrieval(tracer):
+    """Group RAG query generation and subsequent retrieval in one internal span."""
+
+    def decorator(function):
+        @functools.wraps(function)
+        async def wrapped(request, body, extra_params, user, *args, **kwargs):
+            metadata = body.get('metadata') or {}
+            files = [
+                item
+                for item in metadata.get('files') or []
+                if isinstance(item, dict) and item.get('type') != 'filesystem'
+            ]
+            if not files:
+                return await function(request, body, extra_params, user, *args, **kwargs)
+            with tracer.task(
+                'rag.retrieval',
+                purpose='rag_retrieval',
+                conversation_id=metadata.get('chat_id'),
+            ):
+                return await function(request, body, extra_params, user, *args, **kwargs)
+
+        return wrapped
+
+    return decorator
