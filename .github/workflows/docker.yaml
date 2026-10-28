@@ -148,6 +148,10 @@ jobs:
           # through to GITHUB_TOKEN here - it would always pick GITHUB_TOKEN.)
           password: ${{ secrets.GHCR_TOKEN != '' && secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
 
+      - name: Read package version
+        id: pkg-version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Extract metadata for Docker images
         id: meta
         uses: docker/metadata-action@v5
@@ -159,6 +163,7 @@ jobs:
             type=sha,prefix=git-,suffix=${{ steps.tag-context.outputs.combined_suffix }}
             type=semver,pattern={{version}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
             type=semver,pattern={{major}}.{{minor}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
+            ${{ format('type=raw,enable={0},value={1}{2}', github.ref == 'refs/heads/main', steps.pkg-version.outputs.version, steps.tag-context.outputs.combined_suffix) }}
             ${{ format('type=raw,enable={0},value=latest{1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.combined_suffix) }}
             ${{ matrix.suffix != '' && format('type=raw,enable={0},value={1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.alias_tag) || '' }}
           flavor: |
