@@ -9,9 +9,13 @@ from open_webui.utils.telemetry.genai.streaming import wrap_stream
 def _extract_user_text(content):
     """Extract user's actual query from potentially injected content."""
     markers = []
-    text = content if isinstance(content, str) else ' '.join(
-        p.get('text', '') for p in content if isinstance(p, dict) and p.get('type') == 'text'
-    ) if isinstance(content, list) else ''
+    text = (
+        content
+        if isinstance(content, str)
+        else ' '.join(p.get('text', '') for p in content if isinstance(p, dict) and p.get('type') == 'text')
+        if isinstance(content, list)
+        else ''
+    )
 
     if not text:
         return None, markers

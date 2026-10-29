@@ -56,8 +56,12 @@ class GenAITracer:
                 attributes = {
                     semconv.GEN_AI_RESPONSE_MODEL: response.get('model'),
                     semconv.GEN_AI_RESPONSE_ID: response.get('id'),
-                    semconv.GEN_AI_USAGE_INPUT_TOKENS: usage.get('prompt_tokens', usage.get('input_tokens', response.get('prompt_eval_count'))),
-                    semconv.GEN_AI_USAGE_OUTPUT_TOKENS: usage.get('completion_tokens', usage.get('output_tokens', response.get('eval_count'))),
+                    semconv.GEN_AI_USAGE_INPUT_TOKENS: usage.get(
+                        'prompt_tokens', usage.get('input_tokens', response.get('prompt_eval_count'))
+                    ),
+                    semconv.GEN_AI_USAGE_OUTPUT_TOKENS: usage.get(
+                        'completion_tokens', usage.get('output_tokens', response.get('eval_count'))
+                    ),
                     semconv.GEN_AI_RESPONSE_FINISH_REASONS: [
                         choice.get('finish_reason')
                         for choice in response.get('choices', [])
@@ -70,7 +74,8 @@ class GenAITracer:
                 choices = response.get('choices') or []
                 has_tool_calls = any(
                     (c.get('message') or {}).get('tool_calls') or c.get('tool_calls')
-                    for c in choices if isinstance(c, dict)
+                    for c in choices
+                    if isinstance(c, dict)
                 )
                 if has_tool_calls:
                     attributes['studio.agent.step'] = True

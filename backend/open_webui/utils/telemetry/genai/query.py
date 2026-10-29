@@ -67,7 +67,6 @@ def _parse_queries(content):
     return None
 
 
-
 def traced_query_generation(tracer):
     """Passthrough — the inner GENERATION span (labeled retrieval_query) is sufficient."""
 
