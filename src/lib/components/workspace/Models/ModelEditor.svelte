@@ -6,6 +6,7 @@
 	import { getModels } from '$lib/apis';
 	import ModelHistory from './ModelHistory.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
+	import DiffEditorModal from '$lib/components/common/DiffEditorModal.svelte';
 
 	import { onMount, onDestroy, getContext, tick } from 'svelte';
 	import { config, models, tools, functions, user, settings } from '$lib/stores';
@@ -18,6 +19,7 @@
 	import { getLanguages } from '$lib/i18n';
 	import {
 		getBaseModelTags,
+		updateModelAccessGrants,
 		getModelTags,
 		type ModelHistoryEntry,
 		type ModelSnapshot
@@ -58,13 +60,15 @@
 	import { copyToClipboard, extractInputVariables } from '$lib/utils';
 	import {
 		modelControlTranslationSource,
-		pruneEmptyLocaleEntries
+		pruneEmptyLocaleEntries,
+		resolveLocalizedPromptSuggestions
 	} from '$lib/utils/localizedContent';
 
 	const i18n: any = getContext('i18n');
 	const formId = `model-editor-${uuidv4()}`;
 
 	export let onSubmit: Function = () => {};
+	export let onAccessUpdate: Function = () => {};
 	export let readOnly = false;
 	export let onBack: null | Function = null;
 
@@ -153,6 +157,34 @@
 	}
 
 	let system = '';
+	let showComparison = false;
+	let comparison: {
+		id: string;
+		modelId: string | undefined;
+		versionId: string | null | undefined;
+		content: string;
+	} | null = null;
+	const compareRevision = () => {
+		if (!loaded || readOnly || historical || loading || promotingVersion) return;
+		comparison = { id, modelId: model?.id, versionId: model?.version_id, content: system };
+		showComparison = true;
+	};
+	const applyComparison = (content: string) => {
+		if (
+			!comparison ||
+			readOnly ||
+			historical ||
+			loading ||
+			promotingVersion ||
+			comparison.id !== id ||
+			comparison.modelId !== model?.id ||
+			comparison.versionId !== model?.version_id ||
+			comparison.content !== system
+		)
+			throw new Error($i18n.t('The model has changed. Reopen the comparison before applying.'));
+		system = content;
+		showSystemPrompt = true;
+	};
 	let info = {
 		id: '',
 		base_model_id: null,
@@ -200,8 +232,10 @@
 	let builtinTools = {};
 
 	let actionIds = [];
-	let accessGrants = [];
+	let accessGrants: any[] = [];
 	let terminalId = '';
+	$: hasTerminal =
+		$config?.features?.enable_terminal_servers || $config?.features?.enable_direct_integrations;
 	let tts = { voice: '' };
 	let voice = { voice: '' };
 	export let suggestionTags: { name: string }[] = [];
@@ -212,7 +246,7 @@
 		.map(([locale]) => locale);
 	$: editingLocaleLabel = languages.find((language) => language.code === editingLocale)?.title;
 
-	const localizedField = (field: string) => info?.meta?.i18n?.[editingLocale]?.[field] ?? '';
+	$: localizedField = (field: string) => info?.meta?.i18n?.[editingLocale]?.[field] ?? '';
 	const setLocalizedField = (field: string, value: string) => {
 		if (!editingLocale) return;
 
@@ -297,6 +331,9 @@
 
 	$: chatVariablesPreview = getChatVariablesPreview(system ?? '');
 
+	$: includeHidden =
+		$user?.role === 'admin' || ($user?.permissions?.workspace?.models_hidden ?? false);
+
 	const getBaseModelItems = (models: any[] = []) => {
 		const currentModelId = (model as any)?.id;
 
@@ -309,7 +346,7 @@
 					(!baseModel?.preset || (edit && baseModel.id === info.base_model_id)) &&
 					baseModel?.owned_by !== 'arena' &&
 					!(baseModel?.direct ?? false) &&
-					($user?.role === 'admin' ||
+					(includeHidden ||
 						!(baseModel?.info?.meta?.hidden ?? false) ||
 						baseModel.id === info.base_model_id)
 			)
@@ -362,7 +399,8 @@
 
 		modelInfo.params = { ...modelInfo.params, ...params };
 
-		modelInfo.access_grants = accessGrants;
+		if (edit) delete modelInfo.access_grants;
+		else modelInfo.access_grants = accessGrants;
 		modelInfo.meta.capabilities = capabilities;
 
 		if (enableDescription) {
@@ -420,7 +458,7 @@
 			}
 		}
 
-		if (defaultFeatureIds.length > 0) {
+		if (defaultFeatureIds.length > 0 || defaultMeta.defaultFeatureIds?.length > 0) {
 			modelInfo.meta.defaultFeatureIds = defaultFeatureIds;
 		} else {
 			if (modelInfo.meta.defaultFeatureIds) {
@@ -428,7 +466,10 @@
 			}
 		}
 
-		if (Object.keys(builtinTools).length > 0) {
+		if (
+			Object.keys(builtinTools).length > 0 ||
+			Object.keys(defaultMeta.builtinTools ?? {}).length > 0
+		) {
 			modelInfo.meta.builtinTools = builtinTools;
 		} else {
 			if (modelInfo.meta.builtinTools) {
@@ -742,6 +783,12 @@
 </script>
 
 {#if loaded}
+	<DiffEditorModal
+		bind:show={showComparison}
+		initialContent={comparison?.content ?? ''}
+		filePath="system-prompt.md"
+		onApply={applyComparison}
+	/>
 	<input
 		bind:this={backgroundInput}
 		type="file"
@@ -786,6 +833,7 @@
 		}}
 	/>
 	<AccessControlModal
+		disabled={loading}
 		bind:show={showAccessControlModal}
 		bind:accessGrants
 		accessRoles={preset ? ['read', 'write'] : ['read']}
@@ -794,6 +842,28 @@
 		shareUsers={($user?.permissions?.access_grants?.allow_users ?? true) || $user?.role === 'admin'}
 		allowGroups={($user?.permissions?.access_grants?.allow_groups ?? true) ||
 			$user?.role === 'admin'}
+		onChange={async (grants) => {
+			if (edit && model?.id) {
+				loading = true;
+				try {
+					const saved = await updateModelAccessGrants(
+						localStorage.token,
+						model.id,
+						model.name,
+						grants
+					);
+					model.access_grants = structuredClone(saved.access_grants);
+					accessGrants = structuredClone(saved.access_grants);
+					onAccessUpdate(saved);
+					toast.success($i18n.t('Saved'));
+				} catch (error) {
+					accessGrants = structuredClone(model.access_grants ?? []);
+					toast.error(`${error}`);
+				} finally {
+					loading = false;
+				}
+			}
+		}}
 	/>
 
 	<div class="flex h-full min-h-0 w-full flex-col">
@@ -832,7 +902,9 @@
 						{translatedLocales}
 						className="w-fit"
 					/>
-					<AccessButton on:click={() => (showAccessControlModal = true)} />
+					{#if $user?.permissions?.sharing?.models || $user?.role === 'admin'}
+						<AccessButton on:click={() => (showAccessControlModal = true)} />
+					{/if}
 				</div>
 			{/if}
 		</div>
@@ -1059,7 +1131,9 @@
 											<div class="flex min-w-0 items-center gap-2">
 												{#if editingLocale}
 													<input
-														class="min-w-0 flex-1 bg-transparent text-base leading-tight text-gray-900 outline-hidden placeholder:text-gray-300 dark:text-white dark:placeholder:text-gray-700 md:text-lg"
+														class="min-w-0 flex-1 {($settings?.highContrastMode ?? false)
+															? 'min-h-6'
+															: ''} bg-transparent text-base leading-tight text-gray-900 outline-hidden placeholder:text-gray-300 dark:text-white dark:placeholder:text-gray-700 md:text-lg"
 														placeholder={name || $i18n.t('Model Name')}
 														value={localizedField('name')}
 														on:input={(e) =>
@@ -1070,7 +1144,9 @@
 													/>
 												{:else}
 													<input
-														class="min-w-0 flex-1 bg-transparent text-base leading-tight text-gray-900 outline-hidden placeholder:text-gray-300 dark:text-white dark:placeholder:text-gray-700 md:text-lg"
+														class="min-w-0 flex-1 {($settings?.highContrastMode ?? false)
+															? 'min-h-6'
+															: ''} bg-transparent text-base leading-tight text-gray-900 outline-hidden placeholder:text-gray-300 dark:text-white dark:placeholder:text-gray-700 md:text-lg"
 														placeholder={$i18n.t('Model Name')}
 														bind:value={name}
 														required
@@ -1138,7 +1214,9 @@
 											{/if}
 
 											<input
-												class="block w-full bg-transparent py-0.5 text-xs text-gray-500 outline-hidden placeholder:text-gray-300 dark:text-gray-500 dark:placeholder:text-gray-700"
+												class="block w-full {($settings?.highContrastMode ?? false)
+													? 'min-h-6'
+													: ''} bg-transparent py-0.5 text-xs text-gray-500 outline-hidden placeholder:text-gray-300 dark:text-gray-500 dark:placeholder:text-gray-700"
 												placeholder={$i18n.t('Model ID')}
 												bind:value={id}
 												disabled={edit}
@@ -1172,6 +1250,9 @@
 												{/if}
 											</div>
 										{:else}
+											<!-- Preserve the former description labels for i18n extraction:
+											aria-label={enableDescription ? $i18n.t('Custom description enabled') : $i18n.t('Default description enabled')}
+											-->
 											<button
 												class="grid w-full grid-cols-[7rem_minmax(0,1fr)] items-center gap-2 rounded-sm text-start text-xs font-normal text-gray-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:grid-cols-[8rem_minmax(0,1fr)]"
 												type="button"
@@ -1240,7 +1321,7 @@
 													items={getBaseModelItems($models)}
 													triggerClassName="text-xs font-normal text-gray-900 dark:text-gray-100"
 													selectionOnly
-													includeHidden={$user?.role === 'admin'}
+													{includeHidden}
 													bind:value={info.base_model_id}
 												/>
 											</div>
@@ -1284,19 +1365,30 @@
 						<div class="px-2.5 md:px-4">
 							<section class="mt-4">
 								<div class="space-y-2 px-1">
-									<div class="text-xs font-normal text-gray-600 dark:text-gray-400">
+									<div
+										class="flex items-center justify-between gap-2 text-xs font-normal text-gray-600 dark:text-gray-400"
+									>
 										<ModelSettingsLabel
 											label={$i18n.t('System Prompt')}
 											description={$i18n.t(
 												'Set instructions that guide how this model behaves throughout a chat.'
 											)}
 										/>
+										{#if !readOnly && !historical}
+											<button
+												type="button"
+												class="shrink-0 rounded-md px-2 py-1 text-gray-500 hover:text-gray-900 disabled:opacity-50 dark:hover:text-gray-100"
+												disabled={loading || promotingVersion}
+												on:click={compareRevision}>{$i18n.t('Compare revision')}</button
+											>
+										{/if}
 									</div>
 
 									{#if showSystemPrompt || !system.trim()}
 										<fieldset disabled={readOnly} class="min-w-0">
 											<div>
 												<Textarea
+													ariaLabel={$i18n.t('System Prompt')}
 													className="min-h-12 w-full resize-none overflow-y-hidden bg-transparent py-1 text-[0.8125rem] outline-hidden placeholder:text-gray-300 dark:placeholder:text-gray-700 font-normal text-gray-900 dark:text-gray-100"
 													placeholder={$i18n.t(
 														'Write your model system prompt content here\ne.g.) You are Mario from Super Mario Bros, acting as an assistant.'
@@ -1498,7 +1590,13 @@
 									>
 										{#if editingLocale}
 											<LocalizedPromptSuggestions
-												promptSuggestions={info.meta.suggestion_prompts ?? []}
+												promptSuggestions={info.meta.suggestion_prompts ??
+													resolveLocalizedPromptSuggestions(
+														$config?.default_prompt_suggestions,
+														$config?.default_prompt_suggestions_i18n ?? {},
+														editingLocale,
+														(key) => $i18n.t(key)
+													)}
 												bind:localizedPromptSuggestions={info.meta.i18n}
 												locale={editingLocale}
 												localeLabel={editingLocaleLabel}
@@ -1585,11 +1683,11 @@
 											$config?.audio?.realtime?.enabled
 												? voice.voice || $i18n.t('Admin default')
 												: null,
-											$config?.audio?.realtime?.enabled || voiceAvatar
-												? voiceAvatar
-													? $i18n.t('Custom avatar')
-													: $i18n.t('Default orb')
-												: null,
+											voiceAvatar
+												? $i18n.t('Custom avatar')
+												: $config?.audio?.realtime?.enabled
+													? $i18n.t('Default orb')
+													: null,
 											tts.voice
 										]
 											.filter(Boolean)
@@ -1641,7 +1739,7 @@
 											/>
 										</div>
 									</ModelSettingsSection>
-									{#if capabilities.terminal}
+									{#if capabilities.terminal && hasTerminal}
 										<TerminalSelector bind:terminalId />
 									{/if}
 								</div>
@@ -1649,7 +1747,9 @@
 
 							<div class="my-2 text-xs text-gray-400 dark:text-gray-500">
 								<div
-									class="flex w-full items-center gap-2 opacity-30 transition-opacity hover:opacity-60 focus-within:opacity-60"
+									class="flex w-full items-center gap-2 {($settings?.highContrastMode ?? false)
+										? ''
+										: 'opacity-30 transition-opacity hover:opacity-60 focus-within:opacity-60'}"
 								>
 									<button
 										type="button"

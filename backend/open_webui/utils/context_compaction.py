@@ -61,7 +61,7 @@ async def compact_messages_for_request(
     messages, previous_summary = _apply_latest_summary_checkpoint(messages)
     system_prompt = system_prompt or (get_content_from_message(system_messages[0]) if system_messages else '')
     token_threshold = _resolve_token_threshold(config['token_threshold'], config['token_cap'], metadata)
-    if not _exceeds_token_threshold(messages, system_prompt, previous_summary, token_threshold) or len(messages) <= 3:
+    if not _exceeds_token_threshold(messages, system_prompt, previous_summary, token_threshold):
         return [*system_messages, *messages], previous_summary, False
 
     boundary = _find_compaction_boundary(messages, config['retention_percentage'])
@@ -145,6 +145,10 @@ async def compact_messages_for_request(
                     'action': 'context_compaction',
                     'description': 'Context compacted',
                     'done': True,
+                    'checkpoint_message_id': (
+                        recent_messages[0].get('id') if recent_messages[0].get('role') == 'user' else None
+                    ),
+                    'context_summary': summary,
                 },
             }
         )
@@ -303,18 +307,49 @@ def _build_context_usage(tokens: int, threshold: int) -> dict:
 
 
 def _apply_latest_summary_checkpoint(messages: list[dict]) -> tuple[list[dict], str | None]:
-    summary = None
-    summary_idx = None
-
-    for idx, message in enumerate(messages):
+    for idx in range(len(messages) - 1, -1, -1):
+        message = messages[idx]
         value = message.get('contextSummary') or message.get('context_summary')
         if isinstance(value, str) and value.strip():
-            summary = value
-            summary_idx = idx
+            return messages[idx:], value
 
-    if summary_idx is None:
-        return messages, None
-    return messages[summary_idx:], summary
+        marker = next(
+            (
+                item
+                for item in reversed(message.get('output') or [])
+                if item.get('type') == 'open_webui:context_compaction'
+            ),
+            None,
+        )
+        if not marker:
+            continue
+
+        # A tool-loop checkpoint can retain output from an earlier reply.
+        for cut_idx in range(idx, -1, -1):
+            output = messages[cut_idx].get('output') or []
+            start = next(
+                (
+                    position
+                    for position, item in enumerate(output)
+                    if item.get('type') == 'function_call' and item.get('call_id') == marker['call_id']
+                ),
+                None,
+            )
+            if start is not None:
+                while start and output[start - 1].get('type') != 'function_call_output':
+                    start -= 1
+                return [
+                    *messages[max(0, cut_idx - 1) : cut_idx],
+                    {
+                        **messages[cut_idx],
+                        'output': [
+                            item for item in output[start:] if item.get('type') != 'open_webui:context_compaction'
+                        ],
+                    },
+                    *messages[cut_idx + 1 :],
+                ], marker['summary']
+
+    return messages, None
 
 
 def _exceeds_token_threshold(messages: list[dict], system_prompt: str, summary: str | None, threshold: int) -> bool:
@@ -345,6 +380,8 @@ def _find_compaction_boundary(messages: list[dict], retention_percentage: int = 
         ][1:]
     else:
         boundaries = [idx for idx, message in enumerate(messages) if message.get('role') == 'user'][1:]
+        # The first later user turn stays a valid boundary even inside the retained share.
+        target = max(target, min(boundaries, default=0))
     return next((idx for idx in reversed(boundaries) if idx <= target), 0)
 
 

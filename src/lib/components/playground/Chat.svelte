@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { base } from '$app/paths';
+	import { v4 as uuidv4 } from 'uuid';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
@@ -225,7 +226,7 @@
 
 		// Add system message if present
 		if (system) {
-			const systemId = crypto.randomUUID();
+			const systemId = uuidv4();
 			messagesMap[systemId] = {
 				id: systemId,
 				parentId: null,
@@ -239,7 +240,7 @@
 
 		// Add conversation messages
 		for (const msg of messages) {
-			const msgId = crypto.randomUUID();
+			const msgId = uuidv4();
 
 			// Link parent to child
 			if (parentId && messagesMap[parentId]) {
@@ -357,7 +358,12 @@
 						{/if}
 
 						<div class="shrink-0">
-							<button class="p-1.5 bg-transparent hover:bg-white/5 transition rounded-lg">
+							<button
+								type="button"
+								class="p-1.5 bg-transparent hover:bg-white/5 transition rounded-lg"
+								aria-label={$i18n.t('System Instructions')}
+								aria-expanded={showSystem}
+							>
 								{#if showSystem}
 									<ChevronUp className="size-3.5" />
 								{:else}
@@ -470,7 +476,7 @@
 						<div class="shrink-0">
 							<button
 								type="button"
-								class="px-3.5 py-1.5 text-sm font-normal bg-gray-50 hover:bg-gray-100 text-gray-900 dark:bg-gray-850 dark:hover:bg-gray-800 dark:text-gray-200 transition rounded-lg shrink-0 {($settings?.highContrastMode ??
+								class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-100 px-2.5 text-xs font-normal text-gray-800 transition hover:bg-gray-100/70 disabled:opacity-60 dark:bg-gray-850 dark:text-white dark:hover:bg-gray-850/60 {($settings?.highContrastMode ??
 								false)
 									? ''
 									: 'outline-hidden'}"
@@ -487,6 +493,11 @@
 								{:else}
 									{$i18n.t('Assistant')}
 								{/if}
+								<span class="sr-only"
+									>{role === 'user'
+										? $i18n.t('Switch to Assistant role')
+										: $i18n.t('Switch to User role')}</span
+								>
 							</button>
 						</div>
 
@@ -494,6 +505,7 @@
 							<div class="flex-1">
 								<select
 									class=" bg-transparent border border-gray-100/30 dark:border-gray-850/30 rounded-lg py-1 px-2 -mx-0.5 text-sm outline-hidden w-full"
+									aria-label={$i18n.t('Model')}
 									bind:value={selectedModelId}
 								>
 									{#each $models as model}
@@ -521,7 +533,7 @@
 								{#if !loading}
 									<button
 										disabled={message === ''}
-										class="px-3.5 py-1.5 text-sm font-normal disabled:bg-gray-50 dark:disabled:hover:bg-gray-850 disabled:cursor-not-allowed bg-gray-50 hover:bg-gray-100 text-gray-900 dark:bg-gray-850 dark:hover:bg-gray-800 dark:text-gray-200 transition rounded-lg"
+										class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-100 px-2.5 text-xs font-normal text-gray-800 transition hover:bg-gray-100/70 disabled:opacity-60 dark:bg-gray-850 dark:text-white dark:hover:bg-gray-850/60 disabled:cursor-not-allowed"
 										on:click={() => {
 											addHandler();
 											role = role === 'user' ? 'assistant' : 'user';
@@ -531,7 +543,7 @@
 									</button>
 
 									<button
-										class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-lg"
+										class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
 										on:click={() => {
 											submitHandler();
 										}}
@@ -540,7 +552,7 @@
 									</button>
 								{:else}
 									<button
-										class="px-3 py-1.5 text-sm font-normal bg-gray-300 text-black transition rounded-lg"
+										class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-normal text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 disabled:opacity-60 dark:text-gray-400 dark:hover:bg-gray-850 dark:hover:text-white"
 										on:click={() => {
 											stopResponse();
 										}}

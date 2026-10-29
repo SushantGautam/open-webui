@@ -228,7 +228,7 @@
 		}
 	};
 
-	const uploadFileHandler = async (file) => {
+	const createFileItem = (file: File) => {
 		const targetDirectoryId = currentDirectoryId;
 		console.log(file);
 
@@ -266,11 +266,17 @@
 			return;
 		}
 
-		fileItems = [fileItem, ...(fileItems ?? [])];
+		return fileItem;
+	};
+
+	const uploadFileHandler = async (
+		file,
+		fileItem: { itemId: string; directory_id: string | null }
+	) => {
 		try {
 			let metadata = {
 				knowledge_id: knowledge.id,
-				directory_id: targetDirectoryId,
+				directory_id: fileItem.directory_id,
 				// If the file is an audio file, provide the language for STT.
 				...((file.type.startsWith('audio/') || file.type.startsWith('video/')) &&
 				$settings?.audio?.stt?.language
@@ -280,19 +286,29 @@
 					: {})
 			};
 
-			const uploadedFile = await uploadFile(localStorage.token, file, metadata).catch((e) => {
+			const uploadedFile = await uploadFile(
+				localStorage.token,
+				file,
+				metadata,
+				null,
+				true,
+				({ id }: { id: string }) => {
+					fileItems = fileItems.map((item) => {
+						if (item.itemId === fileItem.itemId) {
+							item.id = id;
+							item.status = 'processing';
+						}
+						return item;
+					});
+					init();
+				}
+			).catch((e) => {
 				toast.error(`${e}`);
 				return null;
 			});
 
 			if (uploadedFile) {
 				console.log(uploadedFile);
-				fileItems = fileItems.map((item) => {
-					if (item.itemId === fileItem.itemId) {
-						item.id = uploadedFile.id;
-					}
-					return item;
-				});
 
 				if (uploadedFile.error) {
 					console.warn('File upload warning:', uploadedFile.error);
@@ -311,7 +327,24 @@
 			fileItems = fileItems.filter((item) => item.itemId !== fileItem.itemId);
 			await init();
 		}
-	};
+		};
+
+		// Rows go up front because each upload waits until its file is processed.
+		const uploadFiles = async (files: File[]) => {
+			const uploads: { file: File; fileItem: { itemId: string; directory_id: string | null } }[] = [];
+			for (const file of files) {
+				const fileItem = createFileItem(file);
+				if (fileItem) {
+					uploads.push({ file, fileItem });
+				}
+			}
+
+			fileItems = [...uploads.map(({ fileItem }) => fileItem), ...(fileItems ?? [])];
+
+			for (const { file, fileItem } of uploads) {
+				await uploadFileHandler(file, fileItem);
+			}
+		};
 
 	const uploadDirectoryHandler = async () => {
 		const entries = await collectDirectoryFiles();
@@ -630,10 +663,8 @@
 			}
 
 			const res = await updateKnowledgeById(localStorage.token, id, {
-				...knowledge,
 				name: knowledge.name,
-				description: knowledge.description,
-				access_grants: knowledge.access_grants ?? []
+				description: knowledge.description
 			}).catch((e) => {
 				toast.error(`${e}`);
 			});
@@ -730,10 +761,12 @@
 					const directoryEntries: DirectoryFileEntry[] = [];
 					const looseFiles: File[] = [];
 
-					for (const rawItem of Array.from(inputItems)) {
+					const droppedItems = Array.from(inputItems).map((rawItem) => {
 						const item = rawItem as DataTransferItem & { webkitGetAsEntry?: () => any };
-						const entry = item.webkitGetAsEntry?.();
+						return { entry: item.webkitGetAsEntry?.(), file: item.getAsFile() };
+					});
 
+					for (const { entry, file } of droppedItems) {
 						if (entry?.isDirectory) {
 							try {
 								directoryEntries.push(...(await collectDroppedEntryFiles(entry)));
@@ -741,17 +774,12 @@
 								handleUploadError(error);
 								return;
 							}
-						} else {
-							const file = item.getAsFile();
-							if (file) {
-								looseFiles.push(file);
-							}
+						} else if (file) {
+							looseFiles.push(file);
 						}
 					}
 
-					for (const file of looseFiles) {
-						await uploadFileHandler(file);
-					}
+					await uploadFiles(looseFiles);
 
 					if (directoryEntries.length > 0) {
 						await uploadDirectoryEntries(directoryEntries);
@@ -776,7 +804,7 @@
 				knowledge.access_grants = [];
 			}
 		} else {
-			goto(`\${base}/workspace/knowledge`);
+			goto(`${base}/workspace/knowledge`);
 		}
 
 		const dropZone = document.querySelector('body');
@@ -820,7 +848,7 @@
 	bind:show={showAddTextContentModal}
 	on:submit={(e) => {
 		const file = createFileFromText(e.detail.name, e.detail.content);
-		uploadFileHandler(file);
+		uploadFiles([file]);
 	}}
 />
 
@@ -832,9 +860,7 @@
 	hidden
 	on:change={async () => {
 		if (inputFiles && inputFiles.length > 0) {
-			for (const file of inputFiles) {
-				await uploadFileHandler(file);
-			}
+			await uploadFiles(Array.from(inputFiles));
 
 			inputFiles = null;
 			const fileInputElement = document.getElementById('files-input');
@@ -873,13 +899,13 @@
 			<button
 				type="button"
 				class="flex h-6 w-fit shrink-0 items-center gap-1 whitespace-nowrap rounded-md text-xs text-gray-400 hover:text-gray-700 dark:text-gray-600 dark:hover:text-gray-300"
-				on:click={() => goto(`\${base}/workspace/knowledge`)}
+				on:click={() => goto(`${base}/workspace/knowledge`)}
 				><ChevronLeft className="size-3" strokeWidth="2" />{$i18n.t('Back')}</button
 			>
 			<!-- Previous file count label: {$i18n.t('{{COUNT}} files')} -->
-			{#if knowledge.write_access}<AccessButton
-					on:click={() => (showAccessControlModal = true)}
-				/>{:else}<span class="text-xs text-gray-500">{$i18n.t('Read Only')}</span>{/if}
+			{#if knowledge.write_access}{#if $user?.permissions?.sharing?.knowledge || $user?.role === 'admin'}<AccessButton
+						on:click={() => (showAccessControlModal = true)}
+					/>{/if}{:else}<span class="text-xs text-gray-500">{$i18n.t('Read Only')}</span>{/if}
 		</div>
 		<div class="shrink-0 px-1 pb-2.5">
 			<input
@@ -963,7 +989,7 @@
 									placeholder={$i18n.t('Ask this knowledge source a test question')}
 								/>
 								<button
-									class="px-3 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black text-xs"
+									class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
 									on:click={externalTestHandler}
 								>
 									{$i18n.t('Test')}
