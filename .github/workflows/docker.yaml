@@ -69,7 +69,8 @@ jobs:
 
   build:
     needs: resolve-variants
-    runs-on: ubuntu-latest
+    # Native arm64 runner (public repo, free): no QEMU emulation for the arm64 image.
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     if: ${{ !inputs.prune_only }}
     permissions:
       contents: read
