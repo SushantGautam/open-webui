@@ -163,7 +163,7 @@ jobs:
             type=sha,prefix=git-,suffix=${{ steps.tag-context.outputs.combined_suffix }}
             type=semver,pattern={{version}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
             type=semver,pattern={{major}}.{{minor}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
-            ${{ format('type=raw,enable={0},value={1}-subpath', github.ref == 'refs/heads/main', steps.pkg-version.outputs.version) }}
+            ${{ format('type=raw,enable={0},value=v{1}-subpath', github.ref == 'refs/heads/main', steps.pkg-version.outputs.version) }}
             ${{ format('type=raw,enable={0},value=latest{1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.combined_suffix) }}
             ${{ matrix.suffix != '' && format('type=raw,enable={0},value={1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.alias_tag) || '' }}
           flavor: |
