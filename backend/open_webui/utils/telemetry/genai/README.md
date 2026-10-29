@@ -9,19 +9,19 @@ value is truncated to `OTEL_GENAI_CONTENT_MAX_LENGTH` (default `2000`).
 The following `OTEL_GENAI_*` variables are read by the semantic layer. Boolean
 values accept `1`, `true`, `yes`, or `on` (case-insensitive).
 
-| Variable | Default | Captures |
-| --- | --- | --- |
-| `OTEL_GENAI_ENABLED` | `true` | Enables semantic span creation |
-| `OTEL_GENAI_CAPTURE_INPUTS` | `false` | Model input messages |
-| `OTEL_GENAI_CAPTURE_OUTPUTS` | `false` | Model output messages |
-| `OTEL_GENAI_CAPTURE_SYSTEM_INSTRUCTIONS` | `false` | System instructions |
-| `OTEL_GENAI_CAPTURE_TOOL_ARGUMENTS` | `false` | Tool arguments |
-| `OTEL_GENAI_CAPTURE_TOOL_RESULTS` | `false` | Tool results |
-| `OTEL_GENAI_CAPTURE_RETRIEVAL_QUERY` | `false` | Retrieval queries |
-| `OTEL_GENAI_CAPTURE_RETRIEVAL_DOCUMENTS` | `false` | Retrieved document content |
-| `OTEL_GENAI_CAPTURE_EMBEDDING_TEXT` | `false` | Text sent to embedding providers |
-| `OTEL_GENAI_CAPTURE_EMBEDDING_VECTORS` | `false` | Embedding vectors |
-| `OTEL_GENAI_CONTENT_MAX_LENGTH` | `2000` | Maximum characters for captured content |
+| Variable                                 | Default | Captures                                |
+| ---------------------------------------- | ------- | --------------------------------------- |
+| `OTEL_GENAI_ENABLED`                     | `true`  | Enables semantic span creation          |
+| `OTEL_GENAI_CAPTURE_INPUTS`              | `false` | Model input messages                    |
+| `OTEL_GENAI_CAPTURE_OUTPUTS`             | `false` | Model output messages                   |
+| `OTEL_GENAI_CAPTURE_SYSTEM_INSTRUCTIONS` | `false` | System instructions                     |
+| `OTEL_GENAI_CAPTURE_TOOL_ARGUMENTS`      | `false` | Tool arguments                          |
+| `OTEL_GENAI_CAPTURE_TOOL_RESULTS`        | `false` | Tool results                            |
+| `OTEL_GENAI_CAPTURE_RETRIEVAL_QUERY`     | `false` | Retrieval queries                       |
+| `OTEL_GENAI_CAPTURE_RETRIEVAL_DOCUMENTS` | `false` | Retrieved document content              |
+| `OTEL_GENAI_CAPTURE_EMBEDDING_TEXT`      | `false` | Text sent to embedding providers        |
+| `OTEL_GENAI_CAPTURE_EMBEDDING_VECTORS`   | `false` | Embedding vectors                       |
+| `OTEL_GENAI_CONTENT_MAX_LENGTH`          | `2000`  | Maximum characters for captured content |
 
 The OTLP destination is configured with the standard OpenTelemetry variables,
 including `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`, and
@@ -59,7 +59,6 @@ local test system.
 
 1. Start one of the following OTLP-compatible destinations and record its OTLP
    HTTP endpoint:
-
    - Local Phoenix: `http://localhost:6006/v1/traces`.
    - Local or hosted Langfuse: use the project's OTLP HTTP endpoint, commonly
      `https://<host>/api/public/otel/v1/traces`, together with its documented

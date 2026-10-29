@@ -4,7 +4,7 @@
 	import dayjs, { getDayjsLocale } from '$lib/dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
 
-dayjs.extend(relativeTime);
+	dayjs.extend(relativeTime);
 
 	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
 
@@ -34,7 +34,7 @@ dayjs.extend(relativeTime);
 	let now = new Date();
 	let localTime = '';
 
-		$: lastSeen = user?.last_active_at
+	$: lastSeen = user?.last_active_at
 		? dayjs(user.last_active_at * 1000)
 				.locale(getDayjsLocale($i18n.language))
 				.from(now)

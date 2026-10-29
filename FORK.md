@@ -61,9 +61,8 @@ Images (per ref, per arch amd64/arm64):
     `resolve` job looks the PR up and applies the upstream "required" gate
     (against/from `dev` + version-titled PR).
   - `issue-label.yaml` (labeler bot) — no inputs; paused as well.
-  Run anything you need from **Actions → workflow → Run workflow** (pick a
-  branch first; dispatch checks out the selected ref).
-
+    Run anything you need from **Actions → workflow → Run workflow** (pick a
+    branch first; dispatch checks out the selected ref).
 
 - `release-artifacts.yml` (formerly `release-pypi.yml`) is **manual-only**
   (`workflow_dispatch`) and does **not publish to PyPI** (trusted publishing

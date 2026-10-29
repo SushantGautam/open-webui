@@ -661,7 +661,8 @@
 														// Do not alter, remove, obscure, or replace it except as LICENSE permits:
 														// https://docs.openwebui.com/license.
 														const image = e.currentTarget as HTMLImageElement;
-														if (!image.src.endsWith('/favicon.png')) image.src = `${base}/static/favicon.png`;
+														if (!image.src.endsWith('/favicon.png'))
+															image.src = `${base}/static/favicon.png`;
 													}}
 												/>
 												<span class="truncate max-w-[9.375rem]">{model.name}</span>
@@ -822,7 +823,8 @@
 														class="size-5 rounded-full object-cover shrink-0"
 														on:error={(e) => {
 															const image = e.currentTarget as HTMLImageElement;
-															if (!image.src.endsWith('/user.png')) image.src = `${base}/static/user.png`;
+															if (!image.src.endsWith('/user.png'))
+																image.src = `${base}/static/user.png`;
 														}}
 													/>
 												</ProfilePreview>

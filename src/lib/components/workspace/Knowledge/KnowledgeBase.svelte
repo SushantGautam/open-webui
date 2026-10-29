@@ -327,24 +327,24 @@
 			fileItems = fileItems.filter((item) => item.itemId !== fileItem.itemId);
 			await init();
 		}
-		};
+	};
 
-		// Rows go up front because each upload waits until its file is processed.
-		const uploadFiles = async (files: File[]) => {
-			const uploads: { file: File; fileItem: { itemId: string; directory_id: string | null } }[] = [];
-			for (const file of files) {
-				const fileItem = createFileItem(file);
-				if (fileItem) {
-					uploads.push({ file, fileItem });
-				}
+	// Rows go up front because each upload waits until its file is processed.
+	const uploadFiles = async (files: File[]) => {
+		const uploads: { file: File; fileItem: { itemId: string; directory_id: string | null } }[] = [];
+		for (const file of files) {
+			const fileItem = createFileItem(file);
+			if (fileItem) {
+				uploads.push({ file, fileItem });
 			}
+		}
 
-			fileItems = [...uploads.map(({ fileItem }) => fileItem), ...(fileItems ?? [])];
+		fileItems = [...uploads.map(({ fileItem }) => fileItem), ...(fileItems ?? [])];
 
-			for (const { file, fileItem } of uploads) {
-				await uploadFileHandler(file, fileItem);
-			}
-		};
+		for (const { file, fileItem } of uploads) {
+			await uploadFileHandler(file, fileItem);
+		}
+	};
 
 	const uploadDirectoryHandler = async () => {
 		const entries = await collectDirectoryFiles();
