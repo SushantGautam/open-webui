@@ -789,7 +789,11 @@
 												// LICENSE covers this Open WebUI fallback logo.
 												// Do not alter, remove, obscure, or replace it except as LICENSE permits:
 												// https://docs.openwebui.com/license.
-												e.target.src = '/favicon.png';
+												// Fall back once. Setting src to a missing path re-fired this handler forever.
+												if (!e.target.dataset.fallback) {
+													e.target.dataset.fallback = '1';
+													e.target.src = `${base}/static/favicon.png`;
+												}
 											}}
 										/>
 									</div>
