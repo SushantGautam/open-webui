@@ -320,6 +320,17 @@ jobs:
           # through to GITHUB_TOKEN here - it would always pick GITHUB_TOKEN.)
           password: ${{ secrets.GHCR_TOKEN != '' && secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
 
+      - name: Checkout package.json
+        uses: actions/checkout@v5
+        with:
+          sparse-checkout: package.json
+          sparse-checkout-cone-mode: false
+
+      - name: Read package version
+        if: steps.check.outputs.skip != 'true'
+        id: pkg-version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Derive tag context
         if: steps.check.outputs.skip != 'true'
         id: tag-context
@@ -354,6 +365,7 @@ jobs:
             type=sha,prefix=git-,suffix=${{ steps.tag-context.outputs.combined_suffix }}
             type=semver,pattern={{version}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
             type=semver,pattern={{major}}.{{minor}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
+            ${{ format('type=raw,enable={0},value=v{1}-subpath', github.ref == 'refs/heads/main', steps.pkg-version.outputs.version) }}
             ${{ format('type=raw,enable={0},value=latest{1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.combined_suffix) }}
             ${{ matrix.suffix != '' && format('type=raw,enable={0},value={1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.alias_tag) || '' }}
           flavor: |
