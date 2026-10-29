@@ -329,6 +329,22 @@ class SPAStaticFiles(StaticFiles):
         if full_path.endswith('.html'):
             # Stale cached HTML references chunks from an older build
             response.headers['Cache-Control'] = 'no-cache'
+            # Inject <base href> so the browser resolves SvelteKit's absolute
+            # asset paths (/_app/..., /static/...) under the subpath prefix.
+            # Without this, a deployment behind /chat/ would request assets
+            # from the site root and get 404s.
+            if WEBUI_SUBPATH:
+                with open(full_path, 'r', encoding='utf-8') as fh:
+                    html = fh.read()
+                if '<base ' not in html:
+                    base_tag = f'<base href="{WEBUI_SUBPATH}/">'
+                    html = html.replace('<head>', f'<head>{base_tag}', 1)
+                response = Response(
+                    content=html.encode('utf-8'),
+                    status_code=status_code,
+                    media_type='text/html; charset=utf-8',
+                )
+                response.headers['Cache-Control'] = 'no-cache'
         return response
 
 
