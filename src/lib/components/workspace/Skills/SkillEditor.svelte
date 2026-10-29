@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { base } from '$app/paths';
+	import { v4 as uuidv4 } from 'uuid';
 	import { onMount, tick, getContext } from 'svelte';
 
 	import { toast } from 'svelte-sonner';
@@ -193,7 +194,7 @@
 			loading = false;
 		}
 	};
-	const exportVersion = async (format: 'json' | 'zip') => {
+	const exportVersion = async (format: 'json' | 'zip' | 'skill') => {
 		try {
 			saveAs(
 				await exportSkillBundle(localStorage.token, format, [id], versionId!),
@@ -205,7 +206,7 @@
 	};
 	const saveCopy = async () => {
 		try {
-			const suffix = crypto.randomUUID().slice(0, 7);
+			const suffix = uuidv4().slice(0, 7);
 			const result = await createNewSkill(localStorage.token, {
 				id: `${id}-${suffix}`,
 				name: `${name} (${suffix})`,
@@ -349,7 +350,7 @@
 				class="flex h-6 w-fit shrink-0 items-center gap-1 whitespace-nowrap rounded-md text-xs text-gray-400 transition-colors duration-75 hover:text-gray-700 dark:text-gray-600 dark:hover:text-gray-300"
 				type="button"
 				on:click={() => {
-					goto(`\${base}/workspace/skills`);
+					goto(`${base}/workspace/skills`);
 				}}
 			>
 				<ChevronLeft className="size-3" strokeWidth="2" />
@@ -358,7 +359,9 @@
 			<div class="flex shrink-0 items-center gap-1 pr-0.5">
 				<LanguageModeSelect bind:value={locale} translatedLocales={Object.keys(meta.i18n ?? {})} />
 				{#if !disabled}
-					<AccessButton on:click={() => (showAccessControlModal = true)} />
+					{#if $user?.permissions?.sharing?.skills || $user?.role === 'admin'}
+						<AccessButton on:click={() => (showAccessControlModal = true)} />
+					{/if}
 				{:else}
 					<span class="rounded-lg bg-gray-100 px-2 py-1 text-xs text-gray-500 dark:bg-gray-850">
 						{$i18n.t('Read Only')}
@@ -434,7 +437,7 @@
 				>
 			</div>{/if}
 		<div
-			class="min-h-0 flex-1 overflow-hidden rounded-2xl border border-gray-100/80 bg-gray-50/60 dark:border-white/[0.04] dark:bg-white/[0.03]"
+			class="min-h-0 flex-1 overflow-hidden rounded-2xl border border-gray-100/50 bg-gray-50/60 dark:border-white/[0.025] dark:bg-white/[0.03]"
 		>
 			{#if historyDiff}
 				<VersionDiff
@@ -473,6 +476,7 @@
 							<div class="min-w-0">
 								<Dropdown
 									bind:show={showHistory}
+									align="start"
 									onOpenChange={(open) => {
 										if (open) {
 											historyPage = 1;
@@ -497,7 +501,7 @@
 									</button>
 									<div slot="content">
 										<DropdownMenu
-											className="w-56 max-w-[calc(100vw-2rem)] max-h-80 overflow-y-auto"
+											className="w-72 max-w-[calc(100vw-2rem)] max-h-80 overflow-y-auto"
 										>
 											<VersionMenuItem
 												entry={currentHistoryEntry?.id === currentVersionId
@@ -568,6 +572,9 @@
 						{/if}
 					{/snippet}
 					{#snippet exports()}
+						<button type="button" on:click={() => exportVersion('skill')}
+							><Download className="size-3.5" />{$i18n.t('Export .skill')}</button
+						>
 						<button type="button" on:click={() => exportVersion('json')}
 							><Download className="size-3.5" />{$i18n.t('Export JSON')}</button
 						>

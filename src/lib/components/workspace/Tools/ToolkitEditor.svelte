@@ -253,7 +253,7 @@ class Tools:
 				name,
 				meta: { ...meta, i18n: pruneEmptyLocaleEntries(meta.i18n) },
 				content,
-				access_grants: accessGrants
+				...(!edit ? { access_grants: accessGrants } : {})
 			});
 			if (saved) {
 				if (saved.version_id && saved.content !== undefined) await applyProduction(saved);
@@ -354,12 +354,14 @@ class Tools:
 						pruneEmptyLocaleEntries(selected ? selected.snapshot.meta.i18n : meta.i18n)
 					)}
 				/>
-				<AccessButton
-					disabled={!!selected || loading || selecting || promoting}
-					on:click={() => {
-						showAccessControlModal = true;
-					}}
-				/>
+				{#if $user?.permissions?.sharing?.tools || $user?.role === 'admin'}
+					<AccessButton
+						disabled={!!selected || loading || selecting || promoting}
+						on:click={() => {
+							showAccessControlModal = true;
+						}}
+					/>
+				{/if}
 			</div>
 		</div>
 
@@ -492,6 +494,7 @@ class Tools:
 					value={selected.snapshot.content}
 					lang="python"
 					readOnly
+					ariaLabel={$i18n.t('Code Editor')}
 					className="text-[0.6875rem]"
 				/>
 			{/if}
@@ -501,6 +504,7 @@ class Tools:
 					value={content}
 					readOnly={!!selected || selecting || promoting}
 					lang="python"
+					ariaLabel={$i18n.t('Code Editor')}
 					{boilerplate}
 					className="text-[0.6875rem]"
 					onChange={(e: string) => {

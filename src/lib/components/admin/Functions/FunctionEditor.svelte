@@ -468,7 +468,7 @@ class Pipe:
 					class="flex h-6 w-fit shrink-0 items-center gap-1 whitespace-nowrap rounded-md text-xs text-gray-400 transition-colors duration-75 hover:text-gray-700 dark:text-gray-600 dark:hover:text-gray-300"
 					type="button"
 					on:click={() => {
-						goto(`\${base}/admin/functions`);
+						goto(`${base}/admin/functions`);
 					}}
 				>
 					<ChevronLeft className="size-3" strokeWidth="2" />
@@ -513,6 +513,7 @@ class Pipe:
 					{:else}
 						<LocalizedField
 							placeholder={$i18n.t('Function Name')}
+							showControls={false}
 							bind:value={name}
 							bind:translations={meta.i18n}
 							{locale}
@@ -563,6 +564,7 @@ class Pipe:
 						{:else}
 							<LocalizedField
 								placeholder={$i18n.t('Function Description')}
+								showControls={false}
 								bind:value={meta.description}
 								bind:translations={meta.i18n}
 								{locale}
@@ -638,6 +640,7 @@ class Pipe:
 					value={selected.snapshot.content}
 					lang="python"
 					readOnly
+					ariaLabel={$i18n.t('Code Editor')}
 					className="text-[0.6875rem]"
 				/>
 			{/if}
@@ -647,6 +650,7 @@ class Pipe:
 					value={content}
 					readOnly={!!selected || selecting || promoting}
 					lang="python"
+					ariaLabel={$i18n.t('Code Editor')}
 					{boilerplate}
 					className="text-[0.6875rem]"
 					onChange={(e: string) => {

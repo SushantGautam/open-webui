@@ -235,7 +235,7 @@ jobs:
             BUILD_HASH=${{ github.sha }}
             BUILD_CHANNEL=${{ github.ref == 'refs/heads/dev' && 'dev' || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'main' || 'unknown' }}
             WEBUI_SUBPATH=${{ inputs.webui_subpath }}
-            ${{ matrix.build_args }}
+            ${{ matrix.variant.build_args }}
 
       - name: Export digest
         run: |

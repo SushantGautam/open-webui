@@ -100,6 +100,7 @@ from open_webui.tools.builtin import (
     view_note,
     view_skill,
     read_skill_file,
+    grep_skill_files,
     create_skill,
     update_skill_files,
     write_note,
@@ -129,6 +130,7 @@ from open_webui.utils.terminals import (
     terminal_context_config,
     terminal_context_id,
 )
+from open_webui.utils.voice_avatar import avatar_animation_tools
 from pydantic import BaseModel, Field, create_model
 from pydantic.fields import FieldInfo
 
@@ -449,6 +451,7 @@ async def get_tools(request: Request, tool_ids: list[str], user: UserModel, extr
                     # Prepend tool ID to function name
                     function_name = f'{tool_id}_{function_name}'
 
+                tool_dict['spec'] = {**tool_dict['spec'], 'name': function_name}
                 tools_dict[function_name] = tool_dict
         else:
             if tool_id.startswith('server:'):
@@ -549,6 +552,7 @@ async def get_tools(request: Request, tool_ids: list[str], user: UserModel, extr
                             # Prepend server ID to function name
                             function_name = f'{server_id}_{function_name}'
 
+                        tool_dict['spec'] = {**tool_dict['spec'], 'name': function_name}
                         tools_dict[function_name] = tool_dict
 
                 else:
@@ -652,6 +656,41 @@ async def get_builtin_tools(
             f'chat.{permission_key}',
             await Config.get('user.permissions'),
         )
+
+    gestures = (model.get('info', {}).get('meta', {}).get('voice_avatar') or {}).get('gestures', [])
+    event_call = extra_params.get('__event_call__')
+    if (
+        features.get('voice')
+        and gestures
+        and event_call
+        and get_model_capability('builtin_tools')
+        and not getattr(request.state, 'internal', False)
+        and await has_user_chat_permission('call')
+    ):
+        spec = avatar_animation_tools(gestures)[0]
+        spec.pop('type')
+        names = set(spec['parameters']['properties']['name']['enum'])
+
+        async def play_animation(name: str):
+            if not isinstance(name, str) or name not in names:
+                return {'status': 'unavailable'}
+            try:
+                result = await asyncio.wait_for(
+                    event_call({'type': 'voice:play_animation', 'data': {'name': name, 'model_id': model['id']}}),
+                    timeout=3,
+                )
+                if isinstance(result, dict) and result.get('status') in {'started', 'cancelled', 'unavailable'}:
+                    return {'status': result['status']}
+            except Exception:
+                pass
+            return {'status': 'unavailable'}
+
+        tools_dict['play_animation'] = {
+            'tool_id': 'builtin:play_animation',
+            'callable': play_animation,
+            'spec': spec,
+            'type': 'builtin',
+        }
 
     # Time utilities - available for date calculations
     if is_builtin_tool_enabled('time'):
@@ -811,9 +850,14 @@ async def get_builtin_tools(
             ]
         )
 
-    # Skills tools - view_skill loads bounded instructions, with read_skill_file for continuation.
+    # Skills tools - overview, targeted search, and bounded reads of relevant passages.
+    skill_ids = sorted(set(extra_params.get('__skill_ids__') or []))
+    workspace_skill_ids = [skill_id for skill_id in skill_ids if not skill_id.startswith('terminal:')]
     if is_builtin_tool_enabled('skills'):
-        builtin_functions.extend([view_skill, read_skill_file, update_skill_files])
+        if skill_ids:
+            builtin_functions.extend([view_skill, read_skill_file, grep_skill_files])
+        if workspace_skill_ids:
+            builtin_functions.append(update_skill_files)
         if user.get('role') == 'admin' or await has_permission(
             user.get('id', ''), 'workspace.skills', await Config.get('user.permissions')
         ):
@@ -1241,7 +1285,7 @@ def convert_openapi_to_tool_payload(openapi_spec):
                             tool['parameters']['properties'].update(resolved_schema['properties'])
                             if 'required' in resolved_schema:
                                 tool['parameters']['required'] = list(
-                                    set(tool['parameters']['required'] + resolved_schema['required'])
+                                    dict.fromkeys(tool['parameters']['required'] + resolved_schema['required'])
                                 )
                         elif resolved_schema.get('type') == 'array':
                             tool['parameters'] = resolved_schema  # special case for array
@@ -1283,7 +1327,13 @@ async def get_tool_servers(request: Request):
                 data = await request.app.state.redis.get(f'{REDIS_KEY_PREFIX}:tool_servers')
                 if data is not None:
                     tool_servers = JSONCodec.loads(data)
-                    request.app.state.TOOL_SERVERS = tool_servers
+                    if tool_servers or not any(
+                        connection.get('config', {}).get('enable') and connection.get('type', 'openapi') == 'openapi'
+                        for connection in await Config.get('tool_server.connections', []) or []
+                    ):
+                        request.app.state.TOOL_SERVERS = tool_servers
+                    else:
+                        tool_servers = None
             except Exception as e:
                 log.error(f'Error fetching tool_servers from Redis: {e}')
 
@@ -1819,7 +1869,7 @@ async def execute_tool_server(
             final_url = final_url.replace(f'{{{key}}}', quote(str(value), safe=''))
 
         if query_params:
-            final_url = f'{final_url}?{urlencode(query_params)}'
+            final_url = f'{final_url}?{urlencode(query_params, doseq=True)}'
 
         request_body_content = operation.get('requestBody', {}).get('content')
         if request_body_content and params:

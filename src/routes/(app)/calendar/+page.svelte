@@ -3,7 +3,7 @@
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { WEBUI_NAME, mobile, showSidebar, user } from '$lib/stores';
+	import { WEBUI_NAME, config, mobile, showSidebar, user } from '$lib/stores';
 	import {
 		getCalendars,
 		getCalendarEvents,
@@ -203,6 +203,14 @@
 			: `${MONTH_NAMES[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
 
 	onMount(async () => {
+		if (
+			!$config?.features?.enable_calendar ||
+			($user?.role !== 'admin' && !$user?.permissions?.features?.calendar)
+		) {
+			goto('/');
+			return;
+		}
+
 		await loadCalendars();
 		await refresh();
 		loaded = true;
@@ -246,6 +254,7 @@
 							<button
 								id="sidebar-toggle-button"
 								class="cursor-pointer flex rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+								aria-label={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
 								on:click={() => showSidebar.set(!$showSidebar)}
 							>
 								<div class="self-center p-1.5">
