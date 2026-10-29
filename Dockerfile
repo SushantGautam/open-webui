@@ -23,7 +23,7 @@ ARG BUILD_CHANNEL=unknown
 # Override at your own risk - non-root configurations are untested
 ARG UID=0
 ARG GID=0
-ARG WEBUI_SUBPATH=""
+ARG WEBUI_SUBPATH="/chat"
 
 ######## WebUI frontend ########
 FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
@@ -238,7 +238,7 @@ ENV DOCKER=true
 
 # Default the backend runtime subpath to match the value the frontend was built
 # with. Can still be overridden at runtime with `-e WEBUI_SUBPATH=...`.
-ARG WEBUI_SUBPATH=""
+ARG WEBUI_SUBPATH="/chat"
 ENV WEBUI_SUBPATH=${WEBUI_SUBPATH}
 
 CMD [ "bash", "start.sh"]
