@@ -311,3 +311,7 @@ cypress/videos
 cypress/screenshots
 .vscode/settings.json
 .cptr
+
+# local deployment files (contain secrets - never commit)
+docker-compose.langfuse.yaml
+Caddyfile.langfuse
