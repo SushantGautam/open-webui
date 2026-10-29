@@ -6,7 +6,7 @@ on:
       webui_subpath:
         description: 'URL subpath to bake into the image (e.g. /openwebui). Leave empty to serve at root.'
         required: false
-        default: ''
+        default: '/chat'
         type: string
       prune_only:
         description: 'Skip the build; only prune stale package versions from the registry.'
