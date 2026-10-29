@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getContext, onDestroy, tick } from 'svelte';
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
