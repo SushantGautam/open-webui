@@ -29,6 +29,12 @@ def setup(app: FastAPI, db_engine: Engine):
     # set up trace
     resource = Resource.create(attributes={SERVICE_NAME: OTEL_SERVICE_NAME})
     if ENABLE_OTEL_TRACES:
+        # Register the W3C TraceContext propagator so inbound ``traceparent``
+        # headers (sent by SimpleAudit Studio) can be extracted and adopted as
+        # the parent of this request's span tree. See propagation.install_propagator.
+        from open_webui.utils.telemetry.propagation import install_propagator
+
+        install_propagator()
         trace.set_tracer_provider(TracerProvider(resource=resource))
 
         # Add basic auth header only if both username and password are not empty

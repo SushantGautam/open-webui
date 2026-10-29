@@ -860,6 +860,14 @@ if ENABLE_COMPRESSION_MIDDLEWARE:
 # `open_webui.utils.asgi_middleware` for the rationale.
 app.add_middleware(AppHTTPMiddleware)
 
+# Extract inbound W3C trace context (``traceparent``) so GenAI spans nest
+# under the caller's trace id. Inert unless a client sends a traceparent
+# header (SimpleAudit Studio does for traced agent runs). See
+# open_webui.utils.telemetry.propagation.TraceContextMiddleware.
+from open_webui.utils.telemetry.propagation import TraceContextMiddleware
+
+app.add_middleware(TraceContextMiddleware)
+
 
 app.add_middleware(
     CORSMiddleware,
