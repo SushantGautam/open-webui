@@ -1,13 +1,21 @@
 name: Create and publish Docker images with specific build args
 
+# Every run publishes BOTH Open WebUI builds from the same source:
+#   root    (subpath "")   served at the origin root, e.g. the public instance
+#   subpath (subpath "/chat") /chat baked into the frontend, e.g. the embedded instance
+# A release tag v<version> therefore yields v<version> (root) and v<version>-subpath.
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
-      webui_subpath:
-        description: 'URL subpath to bake into the image (e.g. /openwebui). Leave empty to serve at root.'
+      subpaths:
+        description: 'Which builds to publish: both (root + /chat), root, or chat. Default: both.'
         required: false
-        default: '/chat'
-        type: string
+        default: 'both'
+        type: choice
+        options: [both, root, chat]
       prune_only:
         description: 'Skip the build; only prune stale package versions from the registry.'
         required: false
@@ -18,8 +26,6 @@ on:
         required: false
         default: 'main'
         type: string
-  # Dispatch-only: pushes must not trigger full matrix builds. Publish
-  # explicitly with `gh workflow run docker.yaml` (see FORK.md).
 
 concurrency:
   group: docker-${{ github.ref }}
@@ -35,6 +41,7 @@ jobs:
     if: ${{ !inputs.prune_only }}
     outputs:
       variants: ${{ steps.filter.outputs.variants }}
+      subpaths: ${{ steps.filter.outputs.subpaths }}
     steps:
       - id: filter
         run: |
@@ -67,6 +74,15 @@ jobs:
             echo "variants=$ARR" >> "$GITHUB_OUTPUT"
           fi
 
+          # Subpath builds: "" is the root build, "/chat" is the embedded build.
+          # Tag pushes have no inputs, so they publish both.
+          case "${{ inputs.subpaths }}" in
+            ''|both) echo 'subpaths=["","/chat"]' >> "$GITHUB_OUTPUT" ;;
+            root)    echo 'subpaths=[""]' >> "$GITHUB_OUTPUT" ;;
+            chat)    echo 'subpaths=["/chat"]' >> "$GITHUB_OUTPUT" ;;
+            *)       echo "::error::unknown subpaths '${{ inputs.subpaths }}'"; exit 1 ;;
+          esac
+
   build:
     needs: resolve-variants
     # Native arm64 runner (public repo, free): no QEMU emulation for the arm64 image.
@@ -79,6 +95,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: [linux/amd64, linux/arm64]
+        subpath: ${{ fromJson(needs.resolve-variants.outputs.subpaths) }}
         variant: ${{ fromJson(needs.resolve-variants.outputs.variants) }}
         include:
           - variant: main
@@ -107,11 +124,14 @@ jobs:
 
     steps:
       - name: Prepare environment
+        env:
+          SUB_PATH: ${{ matrix.subpath }}
         run: |
           echo "IMAGE_NAME=${IMAGE_REPOSITORY,,}" >> ${GITHUB_ENV}
           echo "FULL_IMAGE_NAME=${REGISTRY}/${IMAGE_REPOSITORY,,}" >> ${GITHUB_ENV}
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> ${GITHUB_ENV}
+          if [ -n "$SUB_PATH" ]; then echo "SUBPATH_LABEL=${SUB_PATH#/}" >> ${GITHUB_ENV}; else echo "SUBPATH_LABEL=root" >> ${GITHUB_ENV}; fi
 
       - name: Free disk space
         if: matrix.free_disk
@@ -153,6 +173,44 @@ jobs:
         id: pkg-version
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
+      - name: Validate WEBUI_SUBPATH
+        env:
+          SUB_PATH: ${{ matrix.subpath }}
+        run: |
+          sub="$SUB_PATH"
+          if [ -n "$sub" ]; then
+            case "$sub" in
+              /*) ;;
+              *) echo "::error::WEBUI_SUBPATH must start with '/' (got '$sub')."; exit 1 ;;
+            esac
+            case "$sub" in
+              */) echo "::error::WEBUI_SUBPATH must not end with a trailing '/' (got '$sub')."; exit 1 ;;
+            esac
+          fi
+          echo "WEBUI_SUBPATH validated as '${sub:-<root>}'"
+
+      - name: Derive tag context
+        id: tag-context
+        env:
+          SUB_PATH: ${{ matrix.subpath }}
+          VARIANT_NAME: ${{ matrix.variant }}
+          VARIANT_SUFFIX: ${{ matrix.suffix }}
+        run: |
+          subpath_suffix=""
+          alias_tag="$VARIANT_NAME"
+          if [ -n "$SUB_PATH" ]; then
+            subpath_suffix="-subpath"
+            alias_tag="${VARIANT_NAME}${subpath_suffix}"
+          fi
+
+          combined_suffix="${VARIANT_SUFFIX}${subpath_suffix}"
+
+          {
+            echo "subpath_suffix=${subpath_suffix}"
+            echo "combined_suffix=${combined_suffix}"
+            echo "alias_tag=${alias_tag}"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Extract metadata for Docker images
         id: meta
         uses: docker/metadata-action@v5
@@ -162,62 +220,24 @@ jobs:
             type=ref,event=branch,suffix=${{ steps.tag-context.outputs.combined_suffix }}
             type=ref,event=tag,suffix=${{ steps.tag-context.outputs.combined_suffix }}
             type=sha,prefix=git-,suffix=${{ steps.tag-context.outputs.combined_suffix }}
-            type=semver,pattern={{version}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
-            type=semver,pattern={{major}}.{{minor}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
-            ${{ format('type=raw,enable={0},value=v{1}-subpath', github.ref == 'refs/heads/main', steps.pkg-version.outputs.version) }}
+            ${{ format('type=raw,enable={0},value=v{1}{2}', github.ref == 'refs/heads/main', steps.pkg-version.outputs.version, steps.tag-context.outputs.subpath_suffix) }}
             ${{ format('type=raw,enable={0},value=latest{1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.combined_suffix) }}
             ${{ matrix.suffix != '' && format('type=raw,enable={0},value={1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.alias_tag) || '' }}
           flavor: |
             latest=false
 
-      - name: Extract metadata for Docker cache
-        id: cache-meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.FULL_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            ${{ github.ref_type == 'tag' && 'type=raw,value=main' || '' }}
-          flavor: |
-            prefix=cache-${{ matrix.variant }}-${{ matrix.platform }}-
-            latest=false
-
-      - name: Validate WEBUI_SUBPATH
+      # Registry build cache, one ref per variant x subpath x platform. Each build reads its
+      # own cache and the other subpath's (root and /chat share the npm install and the Python
+      # dependency layers). mode=max exports every intermediate layer, not just the final ones.
+      - name: Resolve registry cache refs
+        id: cache
         env:
-          WEBUI_SUBPATH_INPUT: ${{ inputs.webui_subpath }}
-        run: |
-          sub="$WEBUI_SUBPATH_INPUT"
-          if [ -n "$sub" ]; then
-            case "$sub" in
-              /*) ;;
-              *) echo "::error::WEBUI_SUBPATH must start with '/' (got '$sub'); leave empty to serve at root."; exit 1 ;;
-            esac
-            case "$sub" in
-              */) echo "::error::WEBUI_SUBPATH must not end with a trailing '/' (got '$sub'); use e.g. /openwebui."; exit 1 ;;
-            esac
-          fi
-          echo "WEBUI_SUBPATH validated as '${sub:-<root>}'"
-
-      - name: Derive tag context
-        id: tag-context
-        env:
-          WEBUI_SUBPATH_INPUT: ${{ inputs.webui_subpath }}
           VARIANT_NAME: ${{ matrix.variant }}
-          VARIANT_SUFFIX: ${{ matrix.suffix }}
         run: |
-          subpath_suffix=""
-          alias_tag="$VARIANT_NAME"
-          if [ -n "$WEBUI_SUBPATH_INPUT" ]; then
-            subpath_suffix="-subpath"
-            alias_tag="${VARIANT_NAME}${subpath_suffix}"
-          fi
-
-          combined_suffix="${VARIANT_SUFFIX}${subpath_suffix}"
-
-          {
-            echo "combined_suffix=${combined_suffix}"
-            echo "alias_tag=${alias_tag}"
-          } >> "$GITHUB_OUTPUT"
+          other=chat
+          [ "$SUBPATH_LABEL" = chat ] && other=root
+          echo "self=${FULL_IMAGE_NAME}:cache-${VARIANT_NAME}-${SUBPATH_LABEL}-${PLATFORM_PAIR}" >> "$GITHUB_OUTPUT"
+          echo "other=${FULL_IMAGE_NAME}:cache-${VARIANT_NAME}-${other}-${PLATFORM_PAIR}" >> "$GITHUB_OUTPUT"
 
       - name: Build Docker image
         uses: docker/build-push-action@v5
@@ -229,13 +249,15 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.FULL_IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=registry,ref=${{ steps.cache-meta.outputs.tags }}
-          cache-to: type=registry,ref=${{ steps.cache-meta.outputs.tags }},mode=max
+          cache-from: |
+            type=registry,ref=${{ steps.cache.outputs.self }}
+            type=registry,ref=${{ steps.cache.outputs.other }}
+          cache-to: type=registry,ref=${{ steps.cache.outputs.self }},mode=max
           sbom: true
           build-args: |
             BUILD_HASH=${{ github.sha }}
             BUILD_CHANNEL=${{ github.ref == 'refs/heads/dev' && 'dev' || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'main' || 'unknown' }}
-            WEBUI_SUBPATH=${{ inputs.webui_subpath }}
+            WEBUI_SUBPATH=${{ matrix.subpath }}
             ${{ matrix.variant.build_args }}
 
       - name: Export digest
@@ -247,7 +269,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.variant }}-${{ env.PLATFORM_PAIR }}
+          name: digests-${{ matrix.variant }}-${{ env.SUBPATH_LABEL }}-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -262,6 +284,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        subpath: ${{ fromJson(needs.resolve-variants.outputs.subpaths) }}
         variant: ${{ fromJson(needs.resolve-variants.outputs.variants) }}
         include:
           - variant: main
@@ -278,15 +301,18 @@ jobs:
 
     steps:
       - name: Prepare environment
+        env:
+          SUB_PATH: ${{ matrix.subpath }}
         run: |
           echo "IMAGE_NAME=${IMAGE_REPOSITORY,,}" >> ${GITHUB_ENV}
           echo "FULL_IMAGE_NAME=${REGISTRY}/${IMAGE_REPOSITORY,,}" >> ${GITHUB_ENV}
+          if [ -n "$SUB_PATH" ]; then echo "SUBPATH_LABEL=${SUB_PATH#/}" >> ${GITHUB_ENV}; else echo "SUBPATH_LABEL=root" >> ${GITHUB_ENV}; fi
 
       - name: Download digests
         id: download
         uses: actions/download-artifact@v5
         with:
-          pattern: digests-${{ matrix.variant }}-*
+          pattern: digests-${{ matrix.variant }}-${{ env.SUBPATH_LABEL }}-*
           path: /tmp/digests
           merge-multiple: true
         continue-on-error: true
@@ -297,7 +323,7 @@ jobs:
           count=$(find /tmp/digests -type f 2>/dev/null | wc -l | tr -d ' ')
           echo "digest_count=$count" >> $GITHUB_OUTPUT
           if [ "$count" -lt 2 ]; then
-            echo "::warning::${{ matrix.variant }}: found $count digest(s), need 2 (one per arch). Skipping merge."
+            echo "::warning::${{ matrix.variant }}/${SUBPATH_LABEL}: found $count digest(s), need 2 (one per arch). Skipping merge."
             echo "skip=true" >> $GITHUB_OUTPUT
           else
             echo "skip=false" >> $GITHUB_OUTPUT
@@ -335,13 +361,13 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         id: tag-context
         env:
-          WEBUI_SUBPATH_INPUT: ${{ inputs.webui_subpath }}
+          SUB_PATH: ${{ matrix.subpath }}
           VARIANT_NAME: ${{ matrix.variant }}
           VARIANT_SUFFIX: ${{ matrix.suffix }}
         run: |
           subpath_suffix=""
           alias_tag="$VARIANT_NAME"
-          if [ -n "$WEBUI_SUBPATH_INPUT" ]; then
+          if [ -n "$SUB_PATH" ]; then
             subpath_suffix="-subpath"
             alias_tag="${VARIANT_NAME}${subpath_suffix}"
           fi
@@ -349,6 +375,7 @@ jobs:
           combined_suffix="${VARIANT_SUFFIX}${subpath_suffix}"
 
           {
+            echo "subpath_suffix=${subpath_suffix}"
             echo "combined_suffix=${combined_suffix}"
             echo "alias_tag=${alias_tag}"
           } >> "$GITHUB_OUTPUT"
@@ -363,9 +390,7 @@ jobs:
             type=ref,event=branch,suffix=${{ steps.tag-context.outputs.combined_suffix }}
             type=ref,event=tag,suffix=${{ steps.tag-context.outputs.combined_suffix }}
             type=sha,prefix=git-,suffix=${{ steps.tag-context.outputs.combined_suffix }}
-            type=semver,pattern={{version}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
-            type=semver,pattern={{major}}.{{minor}},suffix=${{ steps.tag-context.outputs.combined_suffix }}
-            ${{ format('type=raw,enable={0},value=v{1}-subpath', github.ref == 'refs/heads/main', steps.pkg-version.outputs.version) }}
+            ${{ format('type=raw,enable={0},value=v{1}{2}', github.ref == 'refs/heads/main', steps.pkg-version.outputs.version, steps.tag-context.outputs.subpath_suffix) }}
             ${{ format('type=raw,enable={0},value=latest{1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.combined_suffix) }}
             ${{ matrix.suffix != '' && format('type=raw,enable={0},value={1}', github.ref == 'refs/heads/main', steps.tag-context.outputs.alias_tag) || '' }}
           flavor: |
@@ -384,12 +409,6 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.FULL_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
 
-# notify-helm-charts: removed for this fork — the helm-charts repo and
-# its HELM_CHARTS_APP_ID / HELM_CHARTS_APP_PRIVATE_KEY secrets do not
-# exist here; the job failed every tag dispatch with "appId option is
-# required". Re-add from upstream if you adopt the helm-charts repo.
-
-
   prune:
     runs-on: ubuntu-latest
     needs: [merge]
@@ -398,27 +417,22 @@ jobs:
       contents: read
       packages: write
     steps:
-      # Deletes package versions whose tags belong to an older publish or
-      # are buildx cache manifests, so the ghcr package (and the GitHub
-      # packages UI) never accumulates stale entries. Keeps: this run's
-      # tags (git-<sha7>[-variant][-subpath], <variant>, latest[-...],
-      # main[-...], <sha7>) and pinned v* release tags (the
-      # v0.11.4-subpath family).
+      # Deletes package versions that no current publish owns, so the ghcr package does not
+      # accumulate stale entries. Keeps: this commit's tags (git-<sha7>[-variant][-subpath],
+      # <sha7>), the rolling tags (main/latest, with optional -subpath), pinned v<major>.* release
+      # tags, and the registry build caches (cache-*). Deleting caches made every run cold.
       - name: Prune stale package versions
         env:
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CURRENT_SHA: ${{ github.sha }}
-          WEBUI_SUBPATH: ${{ inputs.webui_subpath }}
         run: |
           OWNER="${GITHUB_REPOSITORY_OWNER}"
           REPO="${IMAGE_REPOSITORY##*/}"
           SHA7="${CURRENT_SHA:0:7}"
-          SUFFIX=""
-          [ -n "$WEBUI_SUBPATH" ] && SUFFIX="-subpath"
-          python3 - "$OWNER" "$REPO" "$SHA7" "$SUFFIX" <<'PYEOF'
+          python3 - "$OWNER" "$REPO" "$SHA7" <<'PYEOF'
           import json, os, re, sys, time, urllib.request, urllib.error
-          owner, repo, sha7, suffix = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+          owner, repo, sha7 = sys.argv[1], sys.argv[2], sys.argv[3]
           token = os.environ["GITHUB_TOKEN"]
           def api(path, method="GET"):
               req = urllib.request.Request(f"https://api.github.com{path}", method=method,
@@ -438,16 +452,16 @@ jobs:
               if len(data) < 100:
                   break
               page += 1
-          # tags created by this run (see build/merge jobs in this file)
-          cur_git = re.compile(rf"^(git-{sha7}|{sha7})(-(main|cuda|cuda126|ollama|slim))?{re.escape(suffix)}$")
-          cur_alias = re.compile(r"^(main|latest|cuda|cuda126|ollama|slim)(-(main|cuda|cuda126|ollama|slim))?" + re.escape(suffix) + "$")
+          cur_git = re.compile(rf"^(git-{sha7}|{sha7})(-(main|cuda|cuda126|ollama|slim))?(-subpath)?$")
+          cur_alias = re.compile(r"^(main|latest|cuda|cuda126|ollama|slim)(-(main|cuda|cuda126|ollama|slim))?(-subpath)?$")
           pinned = re.compile(r"^v\d+\.")
+          cache = re.compile(r"^cache-")
           def tags_of(v):
               return set((v.get("metadata", {}).get("container", {}) or {}).get("tags") or [])
           drop, kept = [], 0
           for v in allv:
               ts = tags_of(v)
-              if not ts or any(cur_git.search(t) or cur_alias.search(t) or pinned.search(t) for t in ts):
+              if not ts or any(cur_git.search(t) or cur_alias.search(t) or pinned.search(t) or cache.search(t) for t in ts):
                   kept += 1
                   continue
               drop.append(v["id"])
