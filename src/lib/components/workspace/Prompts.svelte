@@ -592,7 +592,7 @@
 										<div class="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
 											<Tooltip content={prompt.name} className="min-w-0" placement="top-start">
 												<a
-													href={`/workspace/prompts/${prompt.id}`}
+													href={`${base}/workspace/prompts/${prompt.id}`}
 													class="focus-ring block truncate rounded text-[0.8125rem] leading-5 text-gray-800 group-hover:underline focus-visible:underline dark:text-gray-200"
 													>{prompt.name}</a
 												>

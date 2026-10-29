@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import type { WorkBook } from 'xlsx';
 	import DOMPurify from 'dompurify';
 
@@ -265,7 +266,7 @@
 									? item.url
 									: `${WEBUI_API_BASE_URL}/files/${item?.id ?? item?.tempId}/content`
 								: item?.type === 'collection' && item?.id
-									? `/workspace/knowledge/${item.id}`
+									? `${base}/workspace/knowledge/${item.id}`
 									: safeLinkUrl(item?.url)}
 							target="_blank"
 							rel="noreferrer"

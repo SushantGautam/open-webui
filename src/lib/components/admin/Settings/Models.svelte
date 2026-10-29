@@ -668,7 +668,7 @@
 	const openModelHandler = async (model: any) => {
 		if (isPresetModel(model)) {
 			showSettings.set(false);
-			await goto(`/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
+			await goto(`${base}/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
 			return;
 		}
 

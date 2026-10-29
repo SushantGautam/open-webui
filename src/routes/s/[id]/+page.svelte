@@ -70,7 +70,7 @@
 				await messagesComponent?.scrollToMessage(target);
 			} else messagesComponent?.scrollToBottom();
 		} else if (localStorage.token) {
-			await goto(`\${base}/`);
+			await goto(`${base}/`);
 		} else {
 			await goto(`/auth?redirect=${encodeURIComponent($page.url.pathname)}`);
 		}
@@ -119,7 +119,7 @@
 		chat = await getChatByShareId(token, shareId).catch(() => null);
 
 		if (chat?.chat?.share_mode === 'continue' && chat.id !== shareId) {
-			await goto(`\${base}/c/${chat.id}${$page.url.search}`, { replaceState: true });
+			await goto(`${base}/c/${chat.id}${$page.url.search}`, { replaceState: true });
 			return true;
 		}
 

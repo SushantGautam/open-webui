@@ -216,7 +216,7 @@
 				access_grants: []
 			});
 			remember();
-			await goto(`/workspace/skills/edit?id=${result.id}`);
+			await goto(`${base}/workspace/skills/edit?id=${result.id}`);
 			window.location.reload();
 		} catch (error) {
 			toast.error(skillError(error));
@@ -270,7 +270,7 @@
 				conflict = false;
 				remember();
 				if (showHistory) await loadHistory();
-				if (!edit) await goto(`/workspace/skills/edit?id=${result.id}`);
+				if (!edit) await goto(`${base}/workspace/skills/edit?id=${result.id}`);
 			}
 		} catch (error) {
 			if ((error as any)?.code === 'version_conflict') conflict = true;

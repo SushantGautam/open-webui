@@ -156,7 +156,7 @@
 
 	const openModel = (model) => {
 		if (model.write_access) {
-			goto(`/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
+			goto(`${base}/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
 		}
 	};
 
@@ -274,7 +274,7 @@
 			id: `${model.id}-clone`,
 			name: `${model.name} (Clone)`
 		});
-		goto(`\${base}/workspace/models/create`);
+		goto(`${base}/workspace/models/create`);
 	};
 
 	const shareModelHandler = async (model) => {
@@ -806,7 +806,7 @@
 												>
 													{#if model.write_access}
 														<a
-															href={`/workspace/models/edit?id=${encodeURIComponent(model.id)}`}
+															href={`${base}/workspace/models/edit?id=${encodeURIComponent(model.id)}`}
 															class="focus-ring block truncate rounded text-[0.8125rem] leading-5 text-gray-800 group-hover:underline focus-visible:underline dark:text-gray-200"
 															>{localizedModelName}</a
 														>
@@ -941,7 +941,7 @@
 												{model}
 												writeAccess={model.write_access}
 												editHandler={() => {
-													goto(`/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
+													goto(`${base}/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
 												}}
 												shareHandler={() => {
 													shareModelHandler(model);

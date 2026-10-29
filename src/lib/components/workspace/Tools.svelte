@@ -452,7 +452,7 @@
 											<Tooltip content={tool.id} className="min-w-0" placement="top-start">
 												{#if tool.write_access}
 													<a
-														href={`/workspace/tools/edit?id=${encodeURIComponent(tool.id)}`}
+														href={`${base}/workspace/tools/edit?id=${encodeURIComponent(tool.id)}`}
 														class="focus-ring block truncate rounded text-[0.8125rem] leading-5 text-gray-800 group-hover:underline focus-visible:underline dark:text-gray-200"
 														>{resolveLocalizedResource(tool, $i18n.language)}</a
 													>

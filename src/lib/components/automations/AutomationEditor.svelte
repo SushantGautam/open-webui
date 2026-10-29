@@ -145,7 +145,7 @@
 		});
 		if (res) {
 			toast.success($i18n.t(`Deleted {{name}}`, { name: automation.name }));
-			goto(`\${base}/automations`);
+			goto(`${base}/automations`);
 		}
 	};
 

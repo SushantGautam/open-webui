@@ -328,7 +328,7 @@ class Tools:
 					class="flex h-6 w-fit shrink-0 items-center gap-1 whitespace-nowrap rounded-md text-xs text-gray-400 transition-colors duration-75 hover:text-gray-700 dark:text-gray-600 dark:hover:text-gray-300"
 					type="button"
 					on:click={() => {
-						goto(`\${base}/workspace/tools`);
+						goto(`${base}/workspace/tools`);
 					}}
 				>
 					<ChevronLeft className="size-3" strokeWidth="2" />

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import ModelSettingsLabel from './ModelSettingsLabel.svelte';
 	import { getContext, onMount } from 'svelte';
 	import { config, settings, user } from '$lib/stores';
@@ -316,7 +317,7 @@
 			<div class="ml-auto flex items-center gap-3">
 				{#if $user?.role === 'admin' || $user?.permissions?.workspace?.knowledge}
 					<a
-						href="/workspace/knowledge"
+						href="{base}/workspace/knowledge"
 						target="_blank"
 						rel="noreferrer"
 						class="hover:text-gray-900 dark:hover:text-gray-100">{$i18n.t('Manage')}</a

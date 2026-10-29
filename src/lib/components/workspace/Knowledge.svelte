@@ -461,7 +461,7 @@
 												>
 													{#if !item?.meta?.document}
 														<a
-															href={`/workspace/knowledge/${item.id}`}
+															href={`${base}/workspace/knowledge/${item.id}`}
 															class="focus-ring block truncate rounded text-[0.8125rem] leading-5 text-gray-800 group-hover:underline focus-visible:underline dark:text-gray-200"
 															>{item.name}</a
 														>
