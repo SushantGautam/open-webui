@@ -32,6 +32,7 @@ ARG BUILD_CHANNEL
 ARG USE_SLIM
 ARG UID
 ARG GID
+ARG WEBUI_SUBPATH="/chat"
 
 # Set Node.js options (heap limit Allocation failed - JavaScript heap out of memory)
 # ENV NODE_OPTIONS="--max-old-space-size=4096"
