@@ -26,6 +26,7 @@ Evidence: <exact command run + exact error output>
 ---
 
 ## M1 — OTLP transport hygiene
+
 Status: NOT_STARTED
 Requirements completed: (none yet)
 Files changed: (none yet)
@@ -35,6 +36,7 @@ Deviations: NONE
 Next milestone: M1
 
 ## M1 — OTLP transport hygiene
+
 Status: BLOCKED
 Requirements completed: [ ] All M1 checklist lines remain unverified because the required test command cannot execute in the current environment.
 Files changed: backend/open_webui/utils/telemetry/setup.py; backend/open_webui/test/apps/webui/utils/test_telemetry_setup.py
@@ -46,6 +48,7 @@ Blocked reason: The required M1 verification command cannot pass because the exe
 Evidence: `python -m pip show opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp opentelemetry-semantic-conventions` reported versions `1.45.0`, `1.39.1`, `1.39.1`, and `0.60b1`, respectively. `pytest backend/open_webui/test/apps/webui/utils/test_telemetry_setup.py -v` reported `ImportError: cannot import name '_ExtendedAttributes' from 'opentelemetry.util.types'` and `SystemExit: WEBUI_SECRET_KEY is not set`.
 
 ## M1 — OTLP transport hygiene
+
 Status: COMPLETE
 Requirements completed: [x] Basic-auth Authorization header preserved; [x] unset basic-auth passes `headers=None`; [x] `OTEL_EXPORTER_OTLP_HEADERS=foo=bar` is honored; [x] HTTP and default gRPC exporter paths covered; [x] gRPC `OTEL_EXPORTER_OTLP_INSECURE` preserved; [x] required test file created; [x] required pytest command passes.
 Files changed: backend/open_webui/utils/telemetry/setup.py; backend/open_webui/test/apps/webui/utils/test_telemetry_setup.py
@@ -55,6 +58,7 @@ Deviations: NONE
 Next milestone: M2
 
 ## M2 — Wheel packaging for observability deps
+
 Status: COMPLETE
 Requirements completed: [x] Added `observability` optional dependency extra listing every `opentelemetry-*` package from `backend/requirements.txt` at its pinned version; [x] clean-venv editable install succeeded; [x] gRPC OTLP exporter import succeeded without a separate package install.
 Files changed: pyproject.toml; uv.lock
@@ -64,15 +68,17 @@ Deviations: NONE
 Next milestone: M3
 
 ## M3 — Semantic core: config, semconv, context, tracer
+
 Status: COMPLETE
 Requirements completed: [x] Official/fallback semantic constants centralized in `semconv.py`; [x] no semantic-key literals outside `semconv.py`; [x] workflow/inference/embedding/retrieval/rerank/tool context managers with child spans, exception recording, ERROR status, re-raising user exceptions, and fail-open telemetry handling; [x] recording checks precede extraction; [x] capture flags and truncation implemented; [x] streaming wrapper closes on exhaustion, error, and cancellation; [x] InMemorySpanExporter tests cover kinds, errors, privacy, truncation, and cancellation; [x] required pytest command passes.
-Files changed: backend/open_webui/utils/telemetry/genai/__init__.py; backend/open_webui/utils/telemetry/genai/config.py; backend/open_webui/utils/telemetry/genai/semconv.py; backend/open_webui/utils/telemetry/genai/context.py; backend/open_webui/utils/telemetry/genai/tracer.py; backend/open_webui/utils/telemetry/genai/extractors.py; backend/open_webui/utils/telemetry/genai/streaming.py; backend/open_webui/utils/telemetry/genai/openinference.py; backend/open_webui/test/apps/webui/utils/test_genai_tracer.py
+Files changed: backend/open_webui/utils/telemetry/genai/**init**.py; backend/open_webui/utils/telemetry/genai/config.py; backend/open_webui/utils/telemetry/genai/semconv.py; backend/open_webui/utils/telemetry/genai/context.py; backend/open_webui/utils/telemetry/genai/tracer.py; backend/open_webui/utils/telemetry/genai/extractors.py; backend/open_webui/utils/telemetry/genai/streaming.py; backend/open_webui/utils/telemetry/genai/openinference.py; backend/open_webui/test/apps/webui/utils/test_genai_tracer.py
 Tests run: `WEBUI_SECRET_KEY=test-secret-key uv run pytest backend/open_webui/test/apps/webui/utils/test_genai_tracer.py -v`; `uv run ruff check backend/open_webui/utils/telemetry/genai backend/open_webui/test/apps/webui/utils/test_genai_tracer.py`; semantic-key grep; `git diff --check`
 Test results: PASS — `5 passed in 0.06s`; Ruff: `All checks passed!`; literal-key grep: `literal-key grep passed`; diff check: passed.
 Deviations: NONE
 Next milestone: M4
 
 ## M4 — Workflow root span + context propagation
+
 Status: COMPLETE
 Requirements completed: [x] Chat orchestration call path now wraps `_process_chat`/`process_chat_payload()` in `ai_tracer.workflow(...)`; [x] workflow name is exactly `invoke_workflow open-webui.chat` and contains no IDs; [x] conversation/message/purpose attributes are set and propagated through `context.py`; [x] deferred workflow span remains open until streaming iterator exhaustion/cancellation; [x] background workflow purpose can be non-primary; [x] InMemorySpanExporter tests added; [x] required pytest command passes.
 Files changed: backend/open_webui/main.py; backend/open_webui/utils/telemetry/genai/tracer.py; backend/open_webui/test/apps/webui/utils/test_genai_workflow_context.py
@@ -82,6 +88,7 @@ Deviations: NONE
 Next milestone: M5
 
 ## M5 — Inference spans (model gateway)
+
 Status: COMPLETE
 Requirements completed: [x] OpenAI-compatible and Ollama chat-completions outbound boundaries wrapped in `ai_tracer.inference`; [x] provider/request model/response model/response ID/usage/finish reason and request sampling attributes supported; [x] streaming spans close only after body iteration; [x] input capture remains flag-controlled through extractors; [x] two-round tool-loop and independent usage test; [x] privacy test for both provider paths; [x] required pytest command passes.
 Files changed: backend/open_webui/routers/openai.py; backend/open_webui/routers/ollama.py; backend/open_webui/utils/telemetry/genai/tracer.py; backend/open_webui/utils/telemetry/genai/inference.py; backend/open_webui/test/apps/webui/utils/test_genai_inference.py
@@ -91,6 +98,7 @@ Deviations: NONE
 Next milestone: M6
 
 ## M6 — Tool execution spans
+
 Status: COMPLETE
 Requirements completed: [x] Legacy, approved/resumed, and Responses API tool execution paths call the shared tool tracer; [x] tool spans carry `execute_tool`, name, call ID, and official tool type classification; [x] arguments/results honor independent capture flags; [x] active OTel context preserves HTTP auto-instrumentation as a child span; [x] two-tool parent/child topology test; [x] privacy/content tests; [x] required pytest command passes.
 Files changed: backend/open_webui/utils/middleware.py; backend/open_webui/utils/telemetry/genai/semconv.py; backend/open_webui/utils/telemetry/genai/tools.py; backend/open_webui/test/apps/webui/utils/test_genai_tools.py
@@ -100,6 +108,7 @@ Deviations: NONE
 Next milestone: M7
 
 ## M7 — Retrieval, embedding, rerank spans
+
 Status: COMPLETE
 Requirements completed: [x] `get_sources_from_items()` call path is decorated with a retrieval span; [x] retrieval mode, top-k, candidate/selected counts, and data-source metadata are emitted, with query capture gated; [x] result document IDs/file/chunk/rank/score metadata is emitted independently of content capture; [x] embedding callbacks get child spans with independently gated text/vectors; [x] configured rerank callbacks get child RERANKER spans; [x] span-tree and privacy tests added; [x] required pytest command passes.
 Files changed: backend/open_webui/retrieval/utils.py; backend/open_webui/utils/telemetry/genai/semconv.py; backend/open_webui/utils/telemetry/genai/retrieval.py; backend/open_webui/test/apps/webui/utils/test_genai_retrieval.py
@@ -109,6 +118,7 @@ Deviations: NONE
 Next milestone: M8
 
 ## M8 — Background vs. primary classification
+
 Status: COMPLETE
 Requirements completed: [x] Existing task metadata values are mapped to `title_generation`, `followup_generation`, `tags_generation`, and `retrieval_query`; [x] primary inference/workflow defaults remain `primary`; [x] title/background versus primary test coverage added; [x] required pytest command passes.
 Files changed: backend/open_webui/utils/telemetry/genai/purpose.py; backend/open_webui/utils/telemetry/genai/inference.py; backend/open_webui/test/apps/webui/utils/test_genai_purpose.py
@@ -118,6 +128,7 @@ Deviations: NONE
 Next milestone: M9
 
 ## M9 — Conformance test suite + golden topology snapshots
+
 Status: COMPLETE
 Requirements completed: [x] Conformance coverage exists for all 20 scenario rows with graph/attribute assertions; [x] four golden topology JSON snapshots exist and are diffed by tests; [x] required conformance pytest command passes.
 Files changed: backend/open_webui/test/apps/webui/utils/test_genai_conformance.py; backend/open_webui/test/apps/webui/utils/telemetry/golden/simple_chat.json; backend/open_webui/test/apps/webui/utils/telemetry/golden/rag_chat.json; backend/open_webui/test/apps/webui/utils/telemetry/golden/tool_loop.json; backend/open_webui/test/apps/webui/utils/telemetry/golden/rag_rerank_tool.json
@@ -127,15 +138,17 @@ Deviations: NONE
 Next milestone: M10
 
 ## M10 — Cross-backend interoperability check
+
 Status: COMPLETE
 Requirements completed: [x] Documented export of the M9 `rag_rerank_tool` representative trace to local Phoenix, local/hosted Langfuse, and generic Jaeger/Tempo using standard `OTEL_EXPORTER_OTLP_ENDPOINT` changes; [x] documented backend-specific rendering differences as known differences with no backend-specific code.
-Files changed: backend/open_webui/utils/telemetry/genai/README.md; EXECUTION_STATE.md
-Tests run: `test -s backend/open_webui/utils/telemetry/genai/README.md && rg -n "OTEL_GENAI_|Phoenix|Langfuse|Jaeger|Tempo|rag_rerank_tool|known differences" backend/open_webui/utils/telemetry/genai/README.md`; `git diff --check`
+Files changed: backend/open*webui/utils/telemetry/genai/README.md; EXECUTION_STATE.md
+Tests run: `test -s backend/open_webui/utils/telemetry/genai/README.md && rg -n "OTEL_GENAI*|Phoenix|Langfuse|Jaeger|Tempo|rag_rerank_tool|known differences" backend/open_webui/utils/telemetry/genai/README.md`; `git diff --check`
 Test results: PASS — README contains all required destinations, fixture, environment procedure, and known-differences section; diff check passed.
 Deviations: NONE
 Next milestone: M11
 
 ## M11 — Performance gates
+
 Status: COMPLETE
 Requirements completed: [x] Disabled tracing benchmark stays within the agreed 20 ms total overhead for 20,000 spans; [x] disabled capture and non-recording paths prove extractor JSON serialization is not called; [x] explicit caps tested for tool arguments, tool results, message content, retrieval document count, and exception payload size; [x] required performance test file added; [x] required pytest command passes.
 Files changed: backend/open_webui/utils/telemetry/genai/config.py; backend/open_webui/utils/telemetry/genai/tracer.py; backend/open_webui/utils/telemetry/genai/retrieval.py; backend/open_webui/utils/telemetry/genai/streaming.py; backend/open_webui/utils/telemetry/genai/README.md; backend/open_webui/test/apps/webui/utils/test_genai_performance.py; EXECUTION_STATE.md
@@ -145,6 +158,7 @@ Deviations: NONE
 Next milestone: M12
 
 ## M12 — Fork maintenance documentation
+
 Status: COMPLETE
 Requirements completed: [x] `FORK.md` documents the downstream semantic telemetry patch, all M4–M8 hook-point files, and the M9 conformance acceptance command; [x] `backend/open_webui/utils/telemetry/genai/README.md` documents every `OTEL_GENAI_*` variable and the M10 interoperability procedure.
 Files changed: FORK.md; backend/open_webui/utils/telemetry/genai/README.md; EXECUTION_STATE.md
@@ -154,6 +168,7 @@ Deviations: NONE
 Next milestone: NONE (plan complete)
 
 ## M13 — Opt-in content capture enablement
+
 Status: COMPLETE
 Requirements completed: [x] Buffered inference outputs are emitted when `OTEL_GENAI_CAPTURE_OUTPUTS=true`; [x] streamed inference output is collected until stream completion/cancellation and capped; [x] embedding vectors and retrieved document content are size-capped; [x] content capture remains independently flag-controlled and default-off; [x] protected runtime configuration documented; [x] SimpleAudit OTLP parsing regression confirms `gen_ai.*` content attributes are preserved.
 Files changed: backend/open_webui/utils/telemetry/genai/tracer.py; backend/open_webui/utils/telemetry/genai/inference.py; backend/open_webui/utils/telemetry/genai/streaming.py; backend/open_webui/utils/telemetry/genai/retrieval.py; backend/open_webui/utils/telemetry/genai/README.md; backend/open_webui/test/apps/webui/utils/test_genai_inference.py; backend/open_webui/test/apps/webui/utils/test_genai_retrieval.py; /Users/sushantgautam/Documents/SimpleAudit/tests/test_tracing.py

@@ -89,7 +89,7 @@ writing BLOCKED:
    test, re-run. This is normal iteration, not a blocker.
 2. Environment failure: follow "Environment failures are NOT implementation blockers" above first.
 3. You made an edit that turned out wrong mid-milestone: use `git diff`/`git stash`/`git checkout
-   -- <file>` to back out just that edit and retry differently. You do not need to ask permission
+-- <file>` to back out just that edit and retry differently. You do not need to ask permission
    to revert your own uncommitted work.
 4. A dependency install, generated file, or cache is corrupted: re-run the canonical setup
    (`uv sync`, reinstall) rather than declaring the milestone impossible.

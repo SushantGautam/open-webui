@@ -66,7 +66,6 @@ export function routeAvatarAnimation(
 	return detail.result;
 }
 
-
 // Validate before GLTFLoader can fetch resources or allocate GPU buffers.
 export function readAvatar(data: ArrayBuffer) {
 	if (data.byteLength > AVATAR_MAX_BYTES) throw new Error('Avatar must be at most 25 MiB.');
