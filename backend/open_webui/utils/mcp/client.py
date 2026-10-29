@@ -65,7 +65,6 @@ class OAuthTokenAuth(httpx2.Auth):
                 yield request
 
 
-
 class MCPClient:
     def __init__(self, event_caller=None, server_name=''):
         self.client: Optional[Client] = None

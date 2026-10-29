@@ -795,6 +795,16 @@ async def update_channel_by_id(
     if channel.user_id != user.id and user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ERROR_MESSAGES.DEFAULT())
 
+    form_data.access_grants = await filter_allowed_access_grants(
+        await Config.get('user.permissions'),
+        user.id,
+        user.role,
+        form_data.access_grants,
+        resource_type='channel',
+    )
+
+    previous_access_grants = channel.access_grants
+
     try:
         await encryption.invalidate(id)
         channel = await Channels.update_channel_by_id(id, form_data, db=db)

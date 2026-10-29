@@ -187,11 +187,7 @@ async def test_default_prompt_json_object_tracks_real_query_count():
     @traced_query_generation(tracer)
     async def generate_queries(request, form_data):
         return {
-            'choices': [{
-                'message': {
-                    'content': '{"queries": ["first rewritten query", "second rewritten query"]}'
-                }
-            }]
+            'choices': [{'message': {'content': '{"queries": ["first rewritten query", "second rewritten query"]}'}}]
         }
 
     await generate_queries(request(), form_data())
