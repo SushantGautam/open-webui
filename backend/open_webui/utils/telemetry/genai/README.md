@@ -1,8 +1,10 @@
 # OpenTelemetry GenAI telemetry
 
-This package emits vendor-neutral OpenTelemetry GenAI spans. Structural
-attributes are emitted by default; content capture is opt-in and each content
-value is truncated to `OTEL_GENAI_CONTENT_MAX_LENGTH` (default `2000`).
+This package emits vendor-neutral OpenTelemetry GenAI spans, following the
+[OpenTelemetry GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai).
+Structural attributes and content are emitted by default. Each content value has its own
+`OTEL_GENAI_CAPTURE_*` flag (on by default, except embedding vectors) and is truncated to
+`OTEL_GENAI_CONTENT_MAX_LENGTH` (default `10000`).
 
 ## Environment variables
 
@@ -12,25 +14,45 @@ values accept `1`, `true`, `yes`, or `on` (case-insensitive).
 | Variable                                 | Default | Captures                                |
 | ---------------------------------------- | ------- | --------------------------------------- |
 | `OTEL_GENAI_ENABLED`                     | `true`  | Enables semantic span creation          |
-| `OTEL_GENAI_CAPTURE_INPUTS`              | `false` | Model input messages                    |
-| `OTEL_GENAI_CAPTURE_OUTPUTS`             | `false` | Model output messages                   |
-| `OTEL_GENAI_CAPTURE_SYSTEM_INSTRUCTIONS` | `false` | System instructions                     |
-| `OTEL_GENAI_CAPTURE_TOOL_ARGUMENTS`      | `false` | Tool arguments                          |
-| `OTEL_GENAI_CAPTURE_TOOL_RESULTS`        | `false` | Tool results                            |
-| `OTEL_GENAI_CAPTURE_RETRIEVAL_QUERY`     | `false` | Retrieval queries                       |
-| `OTEL_GENAI_CAPTURE_RETRIEVAL_DOCUMENTS` | `false` | Retrieved document content              |
-| `OTEL_GENAI_CAPTURE_EMBEDDING_TEXT`      | `false` | Text sent to embedding providers        |
+| `OTEL_GENAI_CAPTURE_INPUTS`              | `true`  | Model input messages                    |
+| `OTEL_GENAI_CAPTURE_OUTPUTS`             | `true`  | Model output messages                   |
+| `OTEL_GENAI_CAPTURE_SYSTEM_INSTRUCTIONS` | `true`  | System instructions                     |
+| `OTEL_GENAI_CAPTURE_TOOL_ARGUMENTS`      | `true`  | `gen_ai.tool.call.arguments`            |
+| `OTEL_GENAI_CAPTURE_TOOL_RESULTS`        | `true`  | `gen_ai.tool.call.result`               |
+| `OTEL_GENAI_CAPTURE_RETRIEVAL_QUERY`     | `true`  | Retrieval queries                       |
+| `OTEL_GENAI_CAPTURE_RETRIEVAL_DOCUMENTS` | `true`  | `gen_ai.retrieval.documents`            |
+| `OTEL_GENAI_CAPTURE_EMBEDDING_TEXT`      | `true`  | Text sent to embedding providers        |
 | `OTEL_GENAI_CAPTURE_EMBEDDING_VECTORS`   | `false` | Embedding vectors                       |
-| `OTEL_GENAI_CONTENT_MAX_LENGTH`          | `2000`  | Maximum characters for captured content |
+| `OTEL_GENAI_CONTENT_MAX_LENGTH`          | `10000` | Maximum characters for captured content |
 
 The OTLP destination is configured with the standard OpenTelemetry variables,
 including `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`, and
 `OTEL_EXPORTER_OTLP_INSECURE`. No vendor-specific exporter or attribute is
 required.
 
+## Tool execution spans
+
+Each tool call is one internal span named `execute_tool {gen_ai.tool.name}`, a child of
+the inference span that requested it, following the GenAI conventions:
+
+| Attribute | Requirement | Value |
+| --- | --- | --- |
+| `gen_ai.operation.name` | Required | `execute_tool` |
+| `gen_ai.tool.name` | Required | The tool name |
+| `gen_ai.tool.call.id` | When the model supplies one | The model's tool call id |
+| `gen_ai.tool.type` | Recommended | `function`, `extension` (MCP, OpenAPI, external, action, terminal) |
+| `gen_ai.tool.call.arguments` | Content (`OTEL_GENAI_CAPTURE_TOOL_ARGUMENTS`) | The arguments, as an object |
+| `gen_ai.tool.call.result` | Content (`OTEL_GENAI_CAPTURE_TOOL_RESULTS`) | The result, when the call succeeds |
+| `error.type` | When the call fails | The exception type; the span status is ERROR |
+
+Tool spans do not carry `gen_ai.input.messages` or `gen_ai.output.messages`; those belong to
+inference spans.
+
+For knowledge tools, the result's documents (each with its `source` name) are recorded in `gen_ai.retrieval.documents` (content, `OTEL_GENAI_CAPTURE_RETRIEVAL_DOCUMENTS`).
+
 ## Protected content-capture verification
 
-Content capture is disabled by default. For a protected local receiver only,
+Content capture is on by default. For a protected receiver only,
 enable the fields needed by the test and keep the length cap in place:
 
 ```bash
@@ -114,7 +136,7 @@ returned by the provider), and the existing
 The application task span contains `openwebui.query.type` (`web_search`
 or `retrieval`), `openwebui.query.cached`, `gen_ai.conversation.id`
 when available, and `openwebui.query.generated_count` when the model or
-cache returns an array of queries, including the default model response\nformat `{\"queries\": [...]}`. Query content is never sent by default:
+cache returns an array of queries, including the default model response\nformat `{\"queries\": [...]}`. Query content is sent only when enabled:
 
 - `openwebui.query.original` requires `OTEL_GENAI_CAPTURE_RETRIEVAL_QUERY=true`.
 - `openwebui.query.generated` requires `OTEL_GENAI_CAPTURE_OUTPUTS=true`.

@@ -9,14 +9,14 @@ def _as_bool(value: str | None) -> bool:
 @dataclass(frozen=True)
 class GenAIConfig:
     enabled: bool = True
-    capture_inputs: bool = False
-    capture_outputs: bool = False
-    capture_system_instructions: bool = False
-    capture_tool_arguments: bool = False
-    capture_tool_results: bool = False
-    capture_retrieval_query: bool = False
-    capture_retrieval_documents: bool = False
-    capture_embedding_text: bool = False
+    capture_inputs: bool = True
+    capture_outputs: bool = True
+    capture_system_instructions: bool = True
+    capture_tool_arguments: bool = True
+    capture_tool_results: bool = True
+    capture_retrieval_query: bool = True
+    capture_retrieval_documents: bool = True
+    capture_embedding_text: bool = True
     capture_embedding_vectors: bool = False
     content_max_length: int = 10000
     retrieval_max_documents: int = 100

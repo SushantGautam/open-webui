@@ -23,6 +23,8 @@ GEN_AI_TOOL_CALL_RESULT = _official('GEN_AI_TOOL_CALL_RESULT', 'gen_ai.tool.call
 GEN_AI_TOOL_TYPE = _official('GEN_AI_TOOL_TYPE', 'gen_ai.tool.type')
 GEN_AI_RETRIEVAL_QUERY_TEXT = _official('GEN_AI_RETRIEVAL_QUERY_TEXT', 'gen_ai.retrieval.query.text')
 GEN_AI_RETRIEVAL_DOCUMENTS = _official('GEN_AI_RETRIEVAL_DOCUMENTS', 'gen_ai.retrieval.documents')
+GEN_AI_RETRIEVAL_TOP_K = _official('GEN_AI_RETRIEVAL_TOP_K', 'gen_ai.retrieval.top_k')
+GEN_AI_DATA_SOURCE_ID = _official('GEN_AI_DATA_SOURCE_ID', 'gen_ai.data_source.id')
 GEN_AI_INPUT_MESSAGES = _official('GEN_AI_INPUT_MESSAGES', 'gen_ai.input.messages')
 GEN_AI_OUTPUT_MESSAGES = _official('GEN_AI_OUTPUT_MESSAGES', 'gen_ai.output.messages')
 GEN_AI_SYSTEM_INSTRUCTIONS = _official('GEN_AI_SYSTEM_INSTRUCTIONS', 'gen_ai.system.instructions')
@@ -46,7 +48,6 @@ OPENWEBUI_RETRIEVAL_TOP_K = 'openwebui.retrieval.top_k'
 OPENWEBUI_RETRIEVAL_THRESHOLD = 'openwebui.retrieval.threshold'
 OPENWEBUI_RETRIEVAL_CANDIDATE_COUNT = 'openwebui.retrieval.candidate_count'
 OPENWEBUI_RETRIEVAL_SELECTED_COUNT = 'openwebui.retrieval.selected_count'
-OPENWEBUI_RETRIEVAL_DATA_SOURCE = 'openwebui.retrieval.data_source'
 OPENINFERENCE_SPAN_KIND = 'openinference.span.kind'
 
 ALIASES = {
@@ -64,6 +65,8 @@ ALIASES = {
     'tool_result': GEN_AI_TOOL_CALL_RESULT,
     'retrieval_query': GEN_AI_RETRIEVAL_QUERY_TEXT,
     'retrieval_documents': GEN_AI_RETRIEVAL_DOCUMENTS,
+    'retrieval_top_k': GEN_AI_RETRIEVAL_TOP_K,
+    'data_source_id': GEN_AI_DATA_SOURCE_ID,
     'inputs': GEN_AI_INPUT_MESSAGES,
     'outputs': GEN_AI_OUTPUT_MESSAGES,
     'system_instructions': GEN_AI_SYSTEM_INSTRUCTIONS,
@@ -81,7 +84,6 @@ ALIASES = {
     'threshold': OPENWEBUI_RETRIEVAL_THRESHOLD,
     'candidate_count': OPENWEBUI_RETRIEVAL_CANDIDATE_COUNT,
     'selected_count': OPENWEBUI_RETRIEVAL_SELECTED_COUNT,
-    'data_source': OPENWEBUI_RETRIEVAL_DATA_SOURCE,
 }
 
 

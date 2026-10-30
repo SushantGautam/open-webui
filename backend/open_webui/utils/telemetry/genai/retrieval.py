@@ -8,12 +8,18 @@ from open_webui.utils.telemetry.genai.openinference import attributes_for
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
 
 
-def instrument_embedding(tracer: GenAITracer, embedding_function):
+def instrument_embedding(tracer: GenAITracer, embedding_function, model: str | None = None):
     if embedding_function is None:
         return None
 
     async def wrapped(query, *args, **kwargs):
-        with tracer.embedding('embedding', embedding_text=query) as span:
+        # Standard span name `embeddings {gen_ai.request.model}`.
+        with tracer.embedding(
+            f'embeddings {model}' if model else 'embeddings',
+            operation_name='embeddings',
+            request_model=model,
+            embedding_text=query,
+        ) as span:
             result = await embedding_function(query, *args, **kwargs)
             if span.is_recording() and tracer.config.capture_embedding_vectors and result is not None:
                 value = capture(result, enabled=True, config=tracer.config)
@@ -38,6 +44,12 @@ def instrument_reranker(tracer: GenAITracer, reranking_function):
     return wrapped
 
 
+def _embedding_model(request) -> str | None:
+    """The configured embedding model name, from the request's app state."""
+    config = getattr(getattr(getattr(request, 'app', None), 'state', None), 'config', None)
+    return getattr(config, 'RAG_EMBEDDING_MODEL', None) or None
+
+
 def traced_retrieval(tracer: GenAITracer):
     def decorator(function):
         @functools.wraps(function)
@@ -46,19 +58,23 @@ def traced_retrieval(tracer: GenAITracer):
             values = bound.arguments
             queries = values.get('queries') or []
             query = queries[0] if isinstance(queries, list) and queries else queries
+            # One data source id per span (the standard's gen_ai.data_source.id): the knowledge
+            # collections searched, joined when there are several.
+            collections = sorted({item.get('collection_name') for item in values.get('items') or [] if item.get('collection_name')})
+            data_source_id = ','.join(collections) or None
             with tracer.retrieval(
-                'retrieval',
+                f'retrieval {data_source_id}' if data_source_id else 'retrieval',
                 operation_name='retrieval',
                 retrieval_query=query,
-                top_k=values.get('k'),
+                retrieval_top_k=values.get('k'),
+                data_source_id=data_source_id,
                 candidate_count=len(values.get('items') or []),
                 retrieval_mode='hybrid' if values.get('hybrid_search') else 'vector',
-                data_source=[
-                    item.get('collection_name') for item in values.get('items') or [] if item.get('collection_name')
-                ],
             ) as span:
                 if 'embedding_function' in values:
-                    values['embedding_function'] = instrument_embedding(tracer, values['embedding_function'])
+                    values['embedding_function'] = instrument_embedding(
+                        tracer, values['embedding_function'], model=_embedding_model(values.get('request'))
+                    )
                 result = await function(*bound.args, **bound.kwargs)
                 if span.is_recording() and isinstance(result, list):
                     documents = []
@@ -82,8 +98,10 @@ def traced_retrieval(tracer: GenAITracer):
                                 enabled=True,
                                 config=tracer.config,
                             )
-                        documents.append(json.dumps(entry, ensure_ascii=False, default=str))
-                    span.set_attribute(semconv.GEN_AI_RETRIEVAL_DOCUMENTS, documents)
+                        documents.append(entry)
+                    # gen_ai.retrieval.documents is opt-in: nothing is recorded unless enabled.
+                    if tracer.config.capture_retrieval_documents:
+                        span.set_attribute(semconv.GEN_AI_RETRIEVAL_DOCUMENTS, json.dumps(documents, ensure_ascii=False, default=str))
                     span.set_attribute(semconv.OPENWEBUI_RETRIEVAL_SELECTED_COUNT, len(result))
                 return result
 

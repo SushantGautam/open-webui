@@ -47,7 +47,10 @@ async def test_content_is_absent_for_openai_and_ollama_when_disabled():
     exporter = InMemorySpanExporter()
     provider = TracerProvider()
     provider.add_span_processor(SimpleSpanProcessor(exporter))
-    tracer = GenAITracer(provider.get_tracer('privacy-test'), GenAIConfig())
+    tracer = GenAITracer(
+        provider.get_tracer('privacy-test'),
+        GenAIConfig(capture_inputs=False, capture_outputs=False),
+    )
 
     async def call():
         return {'id': 'response', 'model': 'model', 'choices': [{'finish_reason': 'stop'}]}

@@ -40,6 +40,7 @@ def test_exception_is_recorded_and_status_is_error(span_setup):
 
 def test_content_is_absent_when_capture_is_disabled(span_setup):
     tracer, exporter = span_setup
+    tracer.config = GenAIConfig(capture_inputs=False, capture_outputs=False, capture_tool_arguments=False)
     with tracer.inference(inputs='secret prompt', outputs='secret output', tool_arguments='secret args'):
         pass
     assert not any(

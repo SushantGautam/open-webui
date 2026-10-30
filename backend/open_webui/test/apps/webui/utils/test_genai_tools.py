@@ -41,11 +41,11 @@ async def test_two_tools_are_independent_children_of_inference():
         )
 
     spans = exporter.get_finished_spans()
-    assert [span.name for span in spans] == ['execute_tool', 'execute_tool', 'chat_completion']
+    assert [span.name for span in spans] == ['execute_tool first', 'execute_tool second', 'chat_completion']
     tool_spans = spans[:2]
     assert [span.attributes['gen_ai.tool.name'] for span in tool_spans] == ['first', 'second']
     assert [span.attributes['gen_ai.tool.call.id'] for span in tool_spans] == ['call-1', 'call-2']
-    assert [span.attributes['gen_ai.tool.type'] for span in tool_spans] == ['function', 'mcp']
+    assert [span.attributes['gen_ai.tool.type'] for span in tool_spans] == ['function', 'extension']
     assert all(span.parent.span_id == parent.get_span_context().span_id for span in tool_spans)
 
 
@@ -54,7 +54,10 @@ async def test_tool_payloads_are_absent_when_capture_is_disabled():
     exporter = InMemorySpanExporter()
     provider = TracerProvider()
     provider.add_span_processor(SimpleSpanProcessor(exporter))
-    tracer = GenAITracer(provider.get_tracer('tools-privacy-test'), GenAIConfig())
+    tracer = GenAITracer(
+        provider.get_tracer('tools-privacy-test'),
+        GenAIConfig(capture_tool_arguments=False, capture_tool_results=False),
+    )
 
     async def call():
         return {'secret': 'result'}

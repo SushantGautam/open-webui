@@ -24,7 +24,7 @@ async def test_retrieval_tree_has_embedding_and_rerank_children():
         await instrument_embedding(tracer, embedding)('query')
         instrument_reranker(tracer, rerank)('query', ['document'])
     spans = exporter.get_finished_spans()
-    assert [span.name for span in spans] == ['embedding', 'rerank', 'retrieval']
+    assert [span.name for span in spans] == ['embeddings', 'rerank', 'retrieval']
     assert all(span.parent.span_id == parent.get_span_context().span_id for span in spans[:2])
     assert spans[1].attributes['openinference.span.kind'] == 'RERANKER'
 

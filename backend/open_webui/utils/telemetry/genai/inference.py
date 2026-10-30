@@ -127,7 +127,8 @@ async def traced_inference(
     metadata = request_payload.get('metadata') or {}
     purpose = purpose_for_task(metadata.get('task'))
     model = request_payload.get('model') or 'unknown'
-    span_name = 'chat' if purpose == 'primary' else purpose
+    # Standard GenAI chat span name is `chat {model}`; the purpose is an attribute.
+    span_name = f'chat {model}'
     with tracer.inference(
         span_name,
         operation_name='chat',
