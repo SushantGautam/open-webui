@@ -1,17 +1,35 @@
 [
-	{ "name": "embedding", "parent": "retrieval", "attributes": ["openinference.span.kind"] },
-	{ "name": "vector_search", "parent": "retrieval", "attributes": [] },
+	{
+		"name": "embeddings",
+		"parent": "retrieval",
+		"attributes": [
+			"embedding_text",
+			"gen_ai.operation.name",
+			"openinference.span.kind"
+		]
+	},
+	{
+		"name": "vector_search",
+		"parent": "retrieval",
+		"attributes": []
+	},
 	{
 		"name": "rerank",
 		"parent": "retrieval",
-		"attributes": ["openinference.span.kind", "openwebui.retrieval.candidate_count"]
+		"attributes": [
+			"gen_ai.retrieval.query.text",
+			"openinference.span.kind",
+			"openwebui.retrieval.candidate_count"
+		]
 	},
 	{
-		"name": "execute_tool",
+		"name": "execute_tool retrieval-tool",
 		"parent": "retrieval",
 		"attributes": [
 			"gen_ai.operation.name",
+			"gen_ai.tool.call.arguments",
 			"gen_ai.tool.call.id",
+			"gen_ai.tool.call.result",
 			"gen_ai.tool.name",
 			"gen_ai.tool.type",
 			"openinference.span.kind"
@@ -23,6 +41,7 @@
 		"attributes": [
 			"gen_ai.operation.name",
 			"gen_ai.retrieval.documents",
+			"gen_ai.retrieval.query.text",
 			"openinference.span.kind",
 			"openwebui.retrieval.top_k"
 		]

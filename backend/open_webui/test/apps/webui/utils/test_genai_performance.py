@@ -1,3 +1,4 @@
+import json
 import timeit
 
 import pytest
@@ -90,12 +91,12 @@ async def test_explicit_content_and_topology_caps():
     await retrieve(items=items, queries=['query'], k=4)
 
     spans = exporter.get_finished_spans()
-    tool_span = next(span for span in spans if span.name == 'execute_tool')
+    tool_span = next(span for span in spans if span.name.startswith('execute_tool'))
     assert tool_span.attributes['gen_ai.tool.call.arguments'] == 'argum'
     assert tool_span.attributes['gen_ai.tool.call.result'] == 'resul'
     inference_span = next(span for span in spans if span.name == 'inference')
     assert inference_span.attributes['gen_ai.input.messages'] == 'messa'
     exception_event = next(event for event in inference_span.events if event.name == 'exception')
     assert exception_event.attributes['exception.message'] == 'excepti'
-    retrieval_span = next(span for span in spans if span.name == 'retrieval')
-    assert len(retrieval_span.attributes['gen_ai.retrieval.documents']) == 2
+    retrieval_span = next(span for span in spans if span.name.startswith('retrieval'))
+    assert len(json.loads(retrieval_span.attributes['gen_ai.retrieval.documents'])) == 2

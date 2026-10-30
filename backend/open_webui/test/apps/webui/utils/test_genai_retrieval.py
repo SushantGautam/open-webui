@@ -73,8 +73,8 @@ async def test_embedding_vectors_and_document_content_are_capped_when_enabled():
         embedding_function=embedding,
     )
     spans = exporter.get_finished_spans()
-    embedding_span = next(span for span in spans if span.name == 'embedding')
-    retrieval_span = next(span for span in spans if span.name == 'retrieval')
+    embedding_span = next(span for span in spans if span.name == 'embeddings')
+    retrieval_span = next(span for span in spans if span.name.startswith('retrieval'))
     assert len(embedding_span.attributes['gen_ai.embeddings']) <= 8
-    assert '"content": "document"' in retrieval_span.attributes['gen_ai.retrieval.documents'][0]
-    assert 'document-content-too-long' not in retrieval_span.attributes['gen_ai.retrieval.documents'][0]
+    assert '"content": "document"' in retrieval_span.attributes['gen_ai.retrieval.documents']
+    assert 'document-content-too-long' not in retrieval_span.attributes['gen_ai.retrieval.documents']

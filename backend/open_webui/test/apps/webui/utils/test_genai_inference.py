@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -118,9 +119,12 @@ async def test_streaming_output_is_captured_after_body_iteration():
         GenAIConfig(capture_outputs=True),
     )
 
+    def sse(text):
+        return f'data: {json.dumps({"choices": [{"delta": {"content": text}}]})}\n\n'
+
     async def body():
-        yield 'chunk-one'
-        yield 'chunk-two'
+        yield sse('chunk-one')
+        yield sse('chunk-two')
 
     response = SimpleNamespace(body_iterator=body())
     result = await traced_inference(
@@ -129,7 +133,7 @@ async def test_streaming_output_is_captured_after_body_iteration():
         request_payload={'model': 'model', 'stream': True},
         call=lambda: _return(response),
     )
-    assert [item async for item in result.body_iterator] == ['chunk-one', 'chunk-two']
+    assert [item async for item in result.body_iterator] == [sse('chunk-one'), sse('chunk-two')]
     assert exporter.get_finished_spans()[0].attributes['gen_ai.output.messages'] == 'chunk-onechunk-two'
 
 
