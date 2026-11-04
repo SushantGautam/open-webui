@@ -48,7 +48,6 @@ OPENWEBUI_RETRIEVAL_TOP_K = 'openwebui.retrieval.top_k'
 OPENWEBUI_RETRIEVAL_THRESHOLD = 'openwebui.retrieval.threshold'
 OPENWEBUI_RETRIEVAL_CANDIDATE_COUNT = 'openwebui.retrieval.candidate_count'
 OPENWEBUI_RETRIEVAL_SELECTED_COUNT = 'openwebui.retrieval.selected_count'
-OPENINFERENCE_SPAN_KIND = 'openinference.span.kind'
 
 ALIASES = {
     'operation_name': GEN_AI_OPERATION_NAME,
