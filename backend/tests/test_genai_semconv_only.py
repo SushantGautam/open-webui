@@ -1,6 +1,7 @@
 """GenAI instrumentation must not synthesize OpenInference attributes."""
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import InMemorySpanExporter, SimpleSpanProcessor
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from open_webui.utils.telemetry.genai.config import GenAIConfig
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
