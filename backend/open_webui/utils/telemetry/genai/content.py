@@ -8,14 +8,25 @@ payloads to valid JSON strings. Never truncate an already serialized document.
 import json
 
 
-def clipped(value, limit):
-    """Bound content fields without corrupting the JSON container."""
+# Schema discriminators, identifiers and external references must not be
+# truncated: doing so can invalidate otherwise valid role/parts messages.
+_STRUCTURAL_FIELDS = frozenset({
+    'role', 'type', 'name', 'id', 'file_id', 'tool_call_id',
+    'modality', 'mime_type', 'finish_reason', 'uri', 'filename',
+})
+
+
+def clipped(value, limit, *, field=None):
+    """Bound free-form strings while preserving structural schema properties."""
     if isinstance(value, str):
-        return value[:limit]
+        return value if field in _STRUCTURAL_FIELDS else value[:limit]
     if isinstance(value, list):
         return [clipped(item, limit) for item in value[:100]]
     if isinstance(value, dict):
-        return {str(key): clipped(item, limit) for key, item in list(value.items())[:100]}
+        return {
+            str(key): clipped(item, limit, field=str(key))
+            for key, item in list(value.items())[:100]
+        }
     return value
 
 
