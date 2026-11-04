@@ -2,6 +2,7 @@
 
 import functools
 import inspect
+import json
 
 from open_webui.utils.telemetry.genai import content, semconv
 from open_webui.utils.telemetry.genai.extractors import capture
@@ -146,6 +147,79 @@ def traced_retrieval(tracer: GenAITracer):
                                 content.json_attribute(documents, tracer.config.content_max_length),
                             )
                     span.set_attribute(semconv.OPENWEBUI_RETRIEVAL_SELECTED_COUNT, len(result))
+                return result
+
+        return wrapped
+
+    return decorator
+
+
+def _tool_chunks(result, maximum, limit):
+    """Retrieved chunks of a knowledge-search tool result in the retrieval document schema.
+
+    The tool returns a JSON list of chunks (``content``, ``source``, ``file_id``,
+    optional ``distance``). Only chunks with text content are documents; an error
+    object or an inventory listing yields none. Distances are not relevance scores.
+    """
+    if isinstance(result, str):
+        try:
+            result = json.loads(result)
+        except (TypeError, ValueError):
+            return []
+    if not isinstance(result, list):
+        return []
+    documents = []
+    for chunk in result:
+        if len(documents) >= maximum:
+            break
+        if not isinstance(chunk, dict) or not isinstance(chunk.get('content'), str):
+            continue
+        doc = {}
+        for key in ('document_id', 'chunk_id', 'id', 'note_id'):
+            if chunk.get(key) is not None:
+                doc['id'] = str(chunk[key])
+                break
+        score = chunk.get('score')
+        if isinstance(score, (float, int)) and not isinstance(score, bool):
+            doc['score'] = float(score)
+        if isinstance(chunk.get('source'), str):
+            doc['source'] = chunk['source'][:limit]
+        if chunk.get('file_id'):
+            doc['file_id'] = str(chunk['file_id'])
+        doc['content'] = chunk['content'][:limit]
+        documents.append(doc)
+    return documents
+
+
+def traced_knowledge_tool(tracer: GenAITracer):
+    """Trace a knowledge-search tool's lookup as a GenAI ``retrieval`` span.
+
+    Agentic knowledge search (e.g. ``query_knowledge_files``) bypasses the RAG
+    pipeline traced by ``traced_retrieval``, so without this the chunks it returns
+    exist only in the parent ``execute_tool`` span's result. The retrieval span is
+    a child of that tool span and carries ``gen_ai.retrieval.documents``.
+    """
+
+    def decorator(function):
+        @functools.wraps(function)
+        async def wrapped(*args, **kwargs):
+            values = inspect.signature(function).bind_partial(*args, **kwargs).arguments
+            with tracer.retrieval(
+                'retrieval',
+                operation_name='retrieval',
+                retrieval_query=values.get('query'),
+                retrieval_top_k=values.get('count'),
+            ) as span:
+                result = await function(*args, **kwargs)
+                if span.is_recording() and tracer.config.capture_retrieval_documents:
+                    documents = _tool_chunks(
+                        result, tracer.config.retrieval_max_documents, tracer.config.content_max_length
+                    )
+                    if documents:
+                        span.set_attribute(
+                            semconv.GEN_AI_RETRIEVAL_DOCUMENTS,
+                            content.json_attribute(documents, tracer.config.content_max_length),
+                        )
                 return result
 
         return wrapped
