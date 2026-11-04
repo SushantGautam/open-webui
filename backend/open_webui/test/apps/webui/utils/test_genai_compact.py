@@ -160,3 +160,35 @@ def test_registry_is_bounded_and_expires():
     registry.remember('t2', 'k', location)
     registry.remember('t3', 'k', location)  # evicts the least recently used trace
     assert registry.lookup('t2', 'k') == location and registry.lookup('t1', 'k1') is None
+
+
+@pytest.mark.asyncio
+async def test_telemetry_errors_after_a_tool_returns_never_break_the_tool(monkeypatch):
+    """Fail-open: a bug while recording results still returns the tool's result, unmarked as an error."""
+    from opentelemetry.trace import StatusCode
+
+    def boom(*args, **kwargs):
+        raise RuntimeError('telemetry bug')
+
+    monkeypatch.setattr(compact, 'reference_for', boom)
+    monkeypatch.setattr(compact, 'remember_value', boom)
+    tracer, exporter = _tracer()
+
+    @traced_knowledge_tool(tracer)
+    async def query_knowledge_files(query: str, count: int = 5):
+        return json.dumps(CHUNKS)
+
+    result = await traced_tool(
+        tracer,
+        name='query_knowledge_files',
+        call_id='call-1',
+        tool_type='builtin',
+        arguments={'query': 'electronics'},
+        direct=False,
+        call=lambda: query_knowledge_files('electronics'),
+    )
+
+    assert json.loads(result) == CHUNKS
+    spans = {span.name: span for span in exporter.get_finished_spans()}
+    assert spans['retrieval'].status.status_code is not StatusCode.ERROR
+    assert spans['execute_tool query_knowledge_files'].status.status_code is not StatusCode.ERROR

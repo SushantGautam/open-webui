@@ -3,10 +3,13 @@
 import functools
 import inspect
 import json
+import logging
 
 from open_webui.utils.telemetry.genai import compact, content, semconv
 from open_webui.utils.telemetry.genai.extractors import capture
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
+
+logger = logging.getLogger(__name__)
 
 
 def instrument_embedding(tracer: GenAITracer, embedding_function, model: str | None = None):
@@ -211,19 +214,25 @@ def traced_knowledge_tool(tracer: GenAITracer):
                 retrieval_top_k=values.get('count'),
             ) as span:
                 result = await function(*args, **kwargs)
-                if span.is_recording() and tracer.config.capture_retrieval_documents:
-                    documents = _tool_chunks(
-                        result, tracer.config.retrieval_max_documents, tracer.config.content_max_length
-                    )
-                    if documents:
-                        span.set_attribute(
-                            semconv.GEN_AI_RETRIEVAL_DOCUMENTS,
-                            content.json_attribute(documents, tracer.config.content_max_length),
+                # Fail-open: a telemetry error must never break the knowledge search.
+                try:
+                    if span.is_recording() and tracer.config.capture_retrieval_documents:
+                        documents = _tool_chunks(
+                            result, tracer.config.retrieval_max_documents, tracer.config.content_max_length
                         )
-                        if tracer.config.content_mode == 'compact':
-                            # The tool's result and the later tool response carry these
-                            # same chunks: they refer back to the documents.
-                            compact.remember_value(span, semconv.GEN_AI_RETRIEVAL_DOCUMENTS, content.parse_json(result))
+                        if documents:
+                            span.set_attribute(
+                                semconv.GEN_AI_RETRIEVAL_DOCUMENTS,
+                                content.json_attribute(documents, tracer.config.content_max_length),
+                            )
+                            if tracer.config.content_mode == 'compact':
+                                # The tool's result and the later tool response carry these
+                                # same chunks: they refer back to the documents.
+                                compact.remember_value(
+                                    span, semconv.GEN_AI_RETRIEVAL_DOCUMENTS, content.parse_json(result)
+                                )
+                except Exception:
+                    logger.exception('Unable to record GenAI knowledge retrieval documents')
                 return result
 
         return wrapped

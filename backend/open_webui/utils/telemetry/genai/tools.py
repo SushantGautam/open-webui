@@ -1,9 +1,12 @@
 """GenAI tool-execution spans. Knowledge listings are not retrieval spans."""
 
+import logging
 from collections.abc import Awaitable, Callable
 
 from open_webui.utils.telemetry.genai import compact, content, semconv
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
+
+logger = logging.getLogger(__name__)
 
 _TOOL_TYPES = {
     'function': 'function',
@@ -57,14 +60,18 @@ async def traced_tool(
     ) as span:
         # Exceptions are recorded and typed by GenAITracer._span.
         result = await call()
-        if span.is_recording() and tracer.config.capture_tool_results:
-            value = content.as_object(result, result=True)
-            if tracer.config.content_mode == 'compact':
-                value = _compact_result(span, result, value)
-            span.set_attribute(
-                semconv.GEN_AI_TOOL_CALL_RESULT,
-                content.json_attribute(value, tracer.config.content_max_length),
-            )
+        # Fail-open: a telemetry error must never turn a successful tool call into a failure.
+        try:
+            if span.is_recording() and tracer.config.capture_tool_results:
+                value = content.as_object(result, result=True)
+                if tracer.config.content_mode == 'compact':
+                    value = _compact_result(span, result, value)
+                span.set_attribute(
+                    semconv.GEN_AI_TOOL_CALL_RESULT,
+                    content.json_attribute(value, tracer.config.content_max_length),
+                )
+        except Exception:
+            logger.exception('Unable to record GenAI tool result')
         # Do not attach gen_ai.retrieval.documents to arbitrary tool outputs.
         # list_knowledge inventories aren't documents returned by retrieval.
         return result
