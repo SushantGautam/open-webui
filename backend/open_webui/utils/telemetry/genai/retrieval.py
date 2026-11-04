@@ -4,7 +4,6 @@ import json
 
 from open_webui.utils.telemetry.genai import semconv
 from open_webui.utils.telemetry.genai.extractors import capture
-from open_webui.utils.telemetry.genai.openinference import attributes_for
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
 
 
@@ -35,7 +34,7 @@ def instrument_reranker(tracer: GenAITracer, reranking_function):
         return None
 
     def wrapped(query, documents, *args, **kwargs):
-        with tracer.rerank('rerank', retrieval_query=query, **attributes_for('rerank')) as span:
+        with tracer.rerank('rerank', retrieval_query=query) as span:
             result = reranking_function(query, documents, *args, **kwargs)
             if span.is_recording():
                 span.set_attribute(semconv.OPENWEBUI_RETRIEVAL_CANDIDATE_COUNT, len(documents))
