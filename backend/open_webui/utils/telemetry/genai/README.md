@@ -8,14 +8,14 @@ The GenAI conventions are still in **Development**; updating the schema requires
 
 ## Span structure
 
-| Operation | Span kind | Name |
-| --- | --- | --- |
-| Chat workflow | `INTERNAL` | `invoke_workflow open-webui.chat` |
-| Inference via HTTP API | `CLIENT` | `chat {model}` |
-| Tool invocation | `INTERNAL` | `execute_tool {name}` |
-| RAG document retrieval | `INTERNAL` | `retrieval {source}` or `retrieval` |
-| Embedding request | `CLIENT` | `embeddings {model}` or `embeddings` |
-| Reranking stage | `INTERNAL` | `rerank` (custom task, not a standard GenAI operation) |
+| Operation              | Span kind  | Name                                                   |
+| ---------------------- | ---------- | ------------------------------------------------------ |
+| Chat workflow          | `INTERNAL` | `invoke_workflow open-webui.chat`                      |
+| Inference via HTTP API | `CLIENT`   | `chat {model}`                                         |
+| Tool invocation        | `INTERNAL` | `execute_tool {name}`                                  |
+| RAG document retrieval | `INTERNAL` | `retrieval {source}` or `retrieval`                    |
+| Embedding request      | `CLIENT`   | `embeddings {model}` or `embeddings`                   |
+| Reranking stage        | `INTERNAL` | `rerank` (custom task, not a standard GenAI operation) |
 
 Each span exposes `gen_ai.operation.name` when a standard operation exists.
 LLM spans also carry model/provider, response identifiers, finish reasons and token usage
@@ -31,14 +31,14 @@ validated by construction against the official message and document shapes:
   requests and tool-call responses. System messages in history stay in this field.
 - `gen_ai.output.messages`: one assistant message per generated choice;
   streaming SSE and native Ollama NDJSON are accumulated before export.
-- `gen_ai.system_instructions`: only system instructions supplied *separately*
+- `gen_ai.system_instructions`: only system instructions supplied _separately_
   from the chat history.
 - `gen_ai.tool.call.arguments` and `gen_ai.tool.call.result`: JSON objects.
   Plain-text results are wrapped as `{"content": "..."}`.
 - `gen_ai.retrieval.documents`: **actual returned chunks**, flattened from
   Open WebUI's document/metadata arrays. Records use standard `id` and
   `score` only when known; document `source` and `file_id` are additional
-  metadata permitted by the official schema. Vector *distance* is **not**
+  metadata permitted by the official schema. Vector _distance_ is **not**
   misreported as relevance `score`.
 
 A tool such as `list_knowledge` enumerates a knowledge-base inventory.
@@ -71,7 +71,7 @@ capture. Existing field-level switches still override it individually:
 `OTEL_GENAI_CAPTURE_RETRIEVAL_DOCUMENTS`, and
 `OTEL_GENAI_CAPTURE_EMBEDDING_TEXT`.
 
-Embeddings *vectors* remain **disabled**, even with the master switch enabled;
+Embeddings _vectors_ remain **disabled**, even with the master switch enabled;
 `OTEL_GENAI_CAPTURE_EMBEDDING_VECTORS=true` explicitly enables the custom
 `openwebui.embedding.vectors` field. There is no standard
 `gen_ai.embeddings` vector attribute; `gen_ai.embeddings.dimension.count`

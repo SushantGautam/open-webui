@@ -1,27 +1,21 @@
 [
-  {
-    "name": "embeddings",
-    "parent": "retrieval",
-    "attributes": [
-      "gen_ai.embeddings.dimension.count",
-      "gen_ai.operation.name"
-    ]
-  },
-  {
-    "name": "retrieval",
-    "parent": "invoke_workflow open-webui.chat",
-    "attributes": [
-      "gen_ai.operation.name",
-      "gen_ai.retrieval.documents",
-      "openwebui.retrieval.top_k"
-    ]
-  },
-  {
-    "name": "invoke_workflow open-webui.chat",
-    "parent": null,
-    "attributes": [
-      "gen_ai.operation.name",
-      "openwebui.operation.purpose"
-    ]
-  }
+	{
+		"name": "embeddings",
+		"parent": "retrieval",
+		"attributes": ["gen_ai.embeddings.dimension.count", "gen_ai.operation.name"]
+	},
+	{
+		"name": "retrieval",
+		"parent": "invoke_workflow open-webui.chat",
+		"attributes": [
+			"gen_ai.operation.name",
+			"gen_ai.retrieval.documents",
+			"openwebui.retrieval.top_k"
+		]
+	},
+	{
+		"name": "invoke_workflow open-webui.chat",
+		"parent": null,
+		"attributes": ["gen_ai.operation.name", "openwebui.operation.purpose"]
+	}
 ]
