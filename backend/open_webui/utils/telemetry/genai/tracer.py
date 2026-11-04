@@ -1,10 +1,10 @@
 import logging
 from contextlib import contextmanager
 
-from open_webui.utils.telemetry.genai import context, extractors, semconv
+from open_webui.utils.telemetry.genai import content, context, extractors, semconv
 from open_webui.utils.telemetry.genai.config import GenAIConfig
 from opentelemetry import trace
-from opentelemetry.trace import StatusCode
+from opentelemetry.trace import SpanKind, StatusCode
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 def _record_exception(span, exc, limit):
     if not span.is_recording():
         return
+    span.set_attribute('error.type', type(exc).__name__)
     span.add_event(
         'exception',
         {
@@ -48,11 +49,14 @@ class GenAITracer:
     def tool(self, name='execute_tool', **attrs):
         return self._span('tool', name, **attrs)
 
-    def finish_inference(self, span, response):
+    def finish_inference(self, span, response, *, end=True):
+        """Annotate an inference span; streaming callers end after iteration."""
         try:
             if span.is_recording() and isinstance(response, dict):
                 usage = response.get('usage') or {}
-                attributes = {
+                if not isinstance(usage, dict):
+                    usage = {}
+                attrs = {
                     semconv.GEN_AI_RESPONSE_MODEL: response.get('model'),
                     semconv.GEN_AI_RESPONSE_ID: response.get('id'),
                     semconv.GEN_AI_USAGE_INPUT_TOKENS: usage.get(
@@ -61,48 +65,28 @@ class GenAITracer:
                     semconv.GEN_AI_USAGE_OUTPUT_TOKENS: usage.get(
                         'completion_tokens', usage.get('output_tokens', response.get('eval_count'))
                     ),
-                    semconv.GEN_AI_RESPONSE_FINISH_REASONS: [
-                        choice.get('finish_reason')
-                        for choice in response.get('choices', [])
-                        if isinstance(choice, dict) and choice.get('finish_reason') is not None
-                    ],
+                    semconv.GEN_AI_RESPONSE_FINISH_REASONS: content.normalized_finish_reasons(response),
                 }
-                if response.get('done_reason') and not attributes[semconv.GEN_AI_RESPONSE_FINISH_REASONS]:
-                    attributes[semconv.GEN_AI_RESPONSE_FINISH_REASONS] = [response['done_reason']]
-                # Mark agent decision steps (LLM calls that produce tool_calls)
-                choices = response.get('choices') or []
-                has_tool_calls = any(
-                    (c.get('message') or {}).get('tool_calls') or c.get('tool_calls')
-                    for c in choices
-                    if isinstance(c, dict)
-                )
-                if has_tool_calls:
-                    attributes['studio.agent.step'] = True
-                else:
-                    attributes['studio.role'] = 'answer'
-                span.set_attributes({key: value for key, value in attributes.items() if value is not None})
+                span.set_attributes({key: val for key, val in attrs.items() if val is not None})
                 if self.config.capture_outputs:
-                    output = _response_output(response)
-                    captured = extractors.capture(output, enabled=True, config=self.config)
-                    if captured is not None:
-                        span.set_attribute(semconv.GEN_AI_OUTPUT_MESSAGES, captured)
-            span.end()
+                    messages = content.output_messages(response, self.config.content_max_length)
+                    if messages:
+                        span.set_attribute(
+                            semconv.GEN_AI_OUTPUT_MESSAGES,
+                            content.json_attribute(messages, self.config.content_max_length),
+                        )
         except Exception:
             logger.exception('Unable to finish GenAI inference span')
+        finally:
+            if end:
+                span.end()
 
-    def finish_stream(self, span, chunks, *, agent_step=False):
+    def finish_stream(self, span, stream_capture):
+        """Streaming metadata can arrive in the final SSE/NDJSON chunk."""
         try:
-            if span.is_recording():
-                if agent_step:
-                    span.set_attribute('studio.agent.step', True)
-                else:
-                    span.set_attribute('studio.role', 'answer')
-                if self.config.capture_outputs and chunks:
-                    captured = extractors.capture(''.join(chunks), enabled=True, config=self.config)
-                    if captured is not None:
-                        span.set_attribute(semconv.GEN_AI_OUTPUT_MESSAGES, captured)
+            self.finish_inference(span, stream_capture.finish(), end=False)
         except Exception:
-            logger.exception('Unable to finish GenAI streaming span')
+            logger.exception('Unable to capture streaming GenAI output')
 
     @contextmanager
     # The lifecycle guard intentionally handles independent failure points.
@@ -116,7 +100,28 @@ class GenAITracer:
         failed = False
         try:
             try:
-                span = self.tracer.start_span(name)
+                kinds = {
+                    'workflow': SpanKind.INTERNAL,
+                    'task': SpanKind.INTERNAL,
+                    'inference': SpanKind.CLIENT,
+                    'embedding': SpanKind.CLIENT,
+                    'retrieval': SpanKind.INTERNAL,
+                    'rerank': SpanKind.INTERNAL,
+                    'tool': SpanKind.INTERNAL,
+                }
+                operation = attrs.get('operation_name') or {
+                    'workflow': 'invoke_workflow',
+                    'inference': 'chat',
+                    'embedding': 'embeddings',
+                    'retrieval': 'retrieval',
+                    'tool': 'execute_tool',
+                }.get(kind)
+                initial = {semconv.GEN_AI_OPERATION_NAME: operation} if operation else {}
+                if attrs.get('request_model'):
+                    initial[semconv.GEN_AI_REQUEST_MODEL] = attrs['request_model']
+                if attrs.get('tool_name'):
+                    initial[semconv.GEN_AI_TOOL_NAME] = attrs['tool_name']
+                span = self.tracer.start_span(name, kind=kinds.get(kind, SpanKind.INTERNAL), attributes=initial)
             except Exception:
                 logger.exception('Unable to start GenAI span')
                 yield trace.INVALID_SPAN
@@ -126,6 +131,7 @@ class GenAITracer:
                 token = trace.use_span(span, end_on_exit=False)
                 token.__enter__()
                 if span.is_recording():
+                    attrs.setdefault('operation_name', operation)
                     safe_attrs = extractors.capture_attributes(attrs, self.config)
                     resolved = {
                         semconv.attribute_key(key): value for key, value in safe_attrs.items() if value is not None
@@ -166,15 +172,3 @@ class GenAITracer:
                     logger.exception('Unable to end GenAI span')
 
 
-def _response_output(response):
-    choices = response.get('choices') or []
-    messages = []
-    for choice in choices:
-        if not isinstance(choice, dict):
-            continue
-        message = choice.get('message') or choice.get('text')
-        if message is not None:
-            messages.append(message)
-    if messages:
-        return messages
-    return response.get('message') or response.get('output') or response.get('response')

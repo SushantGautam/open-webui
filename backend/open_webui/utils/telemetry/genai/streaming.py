@@ -20,6 +20,7 @@ async def wrap_stream(span, async_iterator, *, on_item=None, on_finish=None):  #
         span.set_status(StatusCode.OK)
     except asyncio.CancelledError:
         span.set_status(StatusCode.ERROR)
+        span.set_attribute('error.type', 'cancelled')
         raise
     except BaseException as exc:
         if span.is_recording():
@@ -31,6 +32,7 @@ async def wrap_stream(span, async_iterator, *, on_item=None, on_finish=None):  #
                 },
             )
         span.set_status(StatusCode.ERROR)
+        span.set_attribute('error.type', type(exc).__name__)
         raise
     finally:
         if on_finish is not None:

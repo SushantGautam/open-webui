@@ -2,7 +2,7 @@ import json
 import timeit
 
 import pytest
-from open_webui.utils.telemetry.genai import extractors
+from open_webui.utils.telemetry.genai import content
 from open_webui.utils.telemetry.genai.config import GenAIConfig
 from open_webui.utils.telemetry.genai.retrieval import traced_retrieval
 from open_webui.utils.telemetry.genai.tools import traced_tool
@@ -39,7 +39,7 @@ def test_disabled_capture_does_not_serialize(monkeypatch):
     def unexpected_serialization(*args, **kwargs):
         raise AssertionError('content was serialized while capture was disabled')
 
-    monkeypatch.setattr(extractors.json, 'dumps', unexpected_serialization)
+    monkeypatch.setattr(content.json, 'dumps', unexpected_serialization)
     tracer, _ = _tracer(GenAIConfig())
     with tracer.inference(inputs={'secret': 'prompt'}, tool_arguments={'secret': 'args'}):
         pass
@@ -77,7 +77,7 @@ async def test_explicit_content_and_topology_caps():
     )
 
     with pytest.raises(ValueError):
-        with tracer.inference(inputs='message-too-long'):
+        with tracer.inference(inputs=[{'role': 'user', 'content': 'message-too-long'}]):
             raise ValueError('exception-message-too-long')
 
     @traced_retrieval(tracer)
@@ -92,10 +92,10 @@ async def test_explicit_content_and_topology_caps():
 
     spans = exporter.get_finished_spans()
     tool_span = next(span for span in spans if span.name.startswith('execute_tool'))
-    assert tool_span.attributes['gen_ai.tool.call.arguments'] == 'argum'
-    assert tool_span.attributes['gen_ai.tool.call.result'] == 'resul'
+    assert json.loads(tool_span.attributes['gen_ai.tool.call.arguments']) == {'raw': 'argum'}
+    assert json.loads(tool_span.attributes['gen_ai.tool.call.result']) == {'content': 'resul'}
     inference_span = next(span for span in spans if span.name == 'inference')
-    assert inference_span.attributes['gen_ai.input.messages'] == 'messa'
+    assert json.loads(inference_span.attributes['gen_ai.input.messages'])[0]['parts'][0]['content'] == 'messa'
     exception_event = next(event for event in inference_span.events if event.name == 'exception')
     assert exception_event.attributes['exception.message'] == 'excepti'
     retrieval_span = next(span for span in spans if span.name.startswith('retrieval'))

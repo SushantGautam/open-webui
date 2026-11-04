@@ -83,8 +83,7 @@ async def test_buffered_output_is_captured_when_enabled():
 
     await traced_inference(tracer, provider='openai-compatible', request_payload={'model': 'model'}, call=call)
     output = exporter.get_finished_spans()[0].attributes['gen_ai.output.messages']
-    assert len(output) == 12
-    assert output.startswith('[{"role": "a')
+    assert json.loads(output)[0]['parts'][0]['content'] == 'output is longer'[:12]
 
 
 @pytest.mark.asyncio
@@ -134,7 +133,8 @@ async def test_streaming_output_is_captured_after_body_iteration():
         call=lambda: _return(response),
     )
     assert [item async for item in result.body_iterator] == [sse('chunk-one'), sse('chunk-two')]
-    assert exporter.get_finished_spans()[0].attributes['gen_ai.output.messages'] == 'chunk-onechunk-two'
+    messages = json.loads(exporter.get_finished_spans()[0].attributes['gen_ai.output.messages'])
+    assert messages == [{'role': 'assistant', 'parts': [{'type': 'text', 'content': 'chunk-onechunk-two'}]}]
 
 
 async def _return(value):

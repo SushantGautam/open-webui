@@ -1,150 +1,109 @@
-# OpenTelemetry GenAI telemetry
+# OpenTelemetry GenAI tracing (Open WebUI)
 
-This package emits OpenTelemetry GenAI spans (without alternative AI span-kind attributes), following the
+This instrumentation emits vendor-neutral **OTLP** spans using the
 [OpenTelemetry GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai).
-Structural attributes and content are emitted by default. Each content value has its own
-`OTEL_GENAI_CAPTURE_*` flag (on by default, except embedding vectors) and is truncated to
-`OTEL_GENAI_CONTENT_MAX_LENGTH` (default `10000`).
+The schema contract was reviewed against upstream revision
+[`633cbb060b16b1487ea2dcd23c4307edc1a03f01`](https://github.com/open-telemetry/semantic-conventions-genai/tree/633cbb060b16b1487ea2dcd23c4307edc1a03f01).
+The GenAI conventions are still in **Development**; updating the schema requires tests.
 
-## Environment variables
+## Span structure
 
-The following `OTEL_GENAI_*` variables are read by the semantic layer. Boolean
-values accept `1`, `true`, `yes`, or `on` (case-insensitive).
-
-| Variable                                 | Default | Captures                                |
-| ---------------------------------------- | ------- | --------------------------------------- |
-| `OTEL_GENAI_ENABLED`                     | `true`  | Enables semantic span creation          |
-| `OTEL_GENAI_CAPTURE_INPUTS`              | `true`  | Model input messages                    |
-| `OTEL_GENAI_CAPTURE_OUTPUTS`             | `true`  | Model output messages                   |
-| `OTEL_GENAI_CAPTURE_SYSTEM_INSTRUCTIONS` | `true`  | System instructions                     |
-| `OTEL_GENAI_CAPTURE_TOOL_ARGUMENTS`      | `true`  | `gen_ai.tool.call.arguments`            |
-| `OTEL_GENAI_CAPTURE_TOOL_RESULTS`        | `true`  | `gen_ai.tool.call.result`               |
-| `OTEL_GENAI_CAPTURE_RETRIEVAL_QUERY`     | `true`  | Retrieval queries                       |
-| `OTEL_GENAI_CAPTURE_RETRIEVAL_DOCUMENTS` | `true`  | `gen_ai.retrieval.documents`            |
-| `OTEL_GENAI_CAPTURE_EMBEDDING_TEXT`      | `true`  | Text sent to embedding providers        |
-| `OTEL_GENAI_CAPTURE_EMBEDDING_VECTORS`   | `false` | Embedding vectors                       |
-| `OTEL_GENAI_CONTENT_MAX_LENGTH`          | `10000` | Maximum characters for captured content |
-
-The OTLP destination is configured with the standard OpenTelemetry variables,
-including `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`, and
-`OTEL_EXPORTER_OTLP_INSECURE`. No vendor-specific exporter or attribute is
-required.
-
-## Tool execution spans
-
-Each tool call is one internal span named `execute_tool {gen_ai.tool.name}`, a child of
-the inference span that requested it, following the GenAI conventions:
-
-| Attribute | Requirement | Value |
+| Operation | Span kind | Name |
 | --- | --- | --- |
-| `gen_ai.operation.name` | Required | `execute_tool` |
-| `gen_ai.tool.name` | Required | The tool name |
-| `gen_ai.tool.call.id` | When the model supplies one | The model's tool call id |
-| `gen_ai.tool.type` | Recommended | `function`, `extension` (MCP, OpenAPI, external, action, terminal) |
-| `gen_ai.tool.call.arguments` | Content (`OTEL_GENAI_CAPTURE_TOOL_ARGUMENTS`) | The arguments, as an object |
-| `gen_ai.tool.call.result` | Content (`OTEL_GENAI_CAPTURE_TOOL_RESULTS`) | The result, when the call succeeds |
-| `error.type` | When the call fails | The exception type; the span status is ERROR |
+| Chat workflow | `INTERNAL` | `invoke_workflow open-webui.chat` |
+| Inference via HTTP API | `CLIENT` | `chat {model}` |
+| Tool invocation | `INTERNAL` | `execute_tool {name}` |
+| RAG document retrieval | `INTERNAL` | `retrieval {source}` or `retrieval` |
+| Embedding request | `CLIENT` | `embeddings {model}` or `embeddings` |
+| Reranking stage | `INTERNAL` | `rerank` (custom task, not a standard GenAI operation) |
 
-Tool spans do not carry `gen_ai.input.messages` or `gen_ai.output.messages`; those belong to
-inference spans.
+Each span exposes `gen_ai.operation.name` when a standard operation exists.
+LLM spans also carry model/provider, response identifiers, finish reasons and token usage
+when supplied by the provider. W3C `traceparent` continues to connect inbound
+audit requests to their Open WebUI spans.
 
-For knowledge tools, the result's documents (each with its `source` name) are recorded in `gen_ai.retrieval.documents` (content, `OTEL_GENAI_CAPTURE_RETRIEVAL_DOCUMENTS`).
+## Structured content
 
-## Protected content-capture verification
+Python's OTel span attributes don't support nested maps. We emit JSON strings,
+validated by construction against the official message and document shapes:
 
-Content capture is on by default. For a protected receiver only,
-enable the fields needed by the test and keep the length cap in place:
+- `gen_ai.input.messages`: full ordered role/parts history, including tool-call
+  requests and tool-call responses. System messages in history stay in this field.
+- `gen_ai.output.messages`: one assistant message per generated choice;
+  streaming SSE and native Ollama NDJSON are accumulated before export.
+- `gen_ai.system_instructions`: only system instructions supplied *separately*
+  from the chat history.
+- `gen_ai.tool.call.arguments` and `gen_ai.tool.call.result`: JSON objects.
+  Plain-text results are wrapped as `{"content": "..."}`.
+- `gen_ai.retrieval.documents`: **actual returned chunks**, flattened from
+  Open WebUI's document/metadata arrays. Records use standard `id` and
+  `score` only when known; document `source` and `file_id` are additional
+  metadata permitted by the official schema. Vector *distance* is **not**
+  misreported as relevance `score`.
+
+A tool such as `list_knowledge` enumerates a knowledge-base inventory.
+Its files therefore remain in `gen_ai.tool.call.result`; this does **not**
+produce fake `gen_ai.retrieval.documents`.
+
+JSON is always serialized **after** clipping textual fields. Content truncation
+does not turn a valid JSON object into malformed JSON. `OTEL_GENAI_CONTENT_MAX_LENGTH`
+caps individual string fields (not the total serialized attribute length);
+arrays and objects are also capped to 100 entries per nesting level. At most
+`GenAIConfig.retrieval_max_documents` retrieved documents are captured.
+
+## Capture configuration — changed default
+
+**Content capture is opt-in** (previously most fields were enabled by default).
+Structural telemetry remains enabled.
 
 ```bash
-OTEL_GENAI_CAPTURE_INPUTS=true \
-OTEL_GENAI_CAPTURE_OUTPUTS=true \
-OTEL_GENAI_CAPTURE_TOOL_ARGUMENTS=true \
-OTEL_GENAI_CAPTURE_TOOL_RESULTS=true \
-OTEL_GENAI_CAPTURE_RETRIEVAL_QUERY=true \
-OTEL_GENAI_CAPTURE_RETRIEVAL_DOCUMENTS=true \
-OTEL_GENAI_CONTENT_MAX_LENGTH=2000
+OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT=true
+OTEL_GENAI_CONTENT_MAX_LENGTH=10000
 ```
 
-Buffered and streamed model outputs are emitted on `gen_ai.output.messages`.
-Tool arguments/results, retrieval query/document content, embedding text, and
-embedding vectors each remain independently controlled by their corresponding
-flag. Do not enable these flags for an untrusted or production telemetry
-destination without an explicit data-handling review.
+The standard `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT` flag enables content
+capture. Existing field-level switches still override it individually:
 
-## M10 interoperability procedure
+`OTEL_GENAI_CAPTURE_INPUTS`, `OTEL_GENAI_CAPTURE_OUTPUTS`,
+`OTEL_GENAI_CAPTURE_SYSTEM_INSTRUCTIONS`,
+`OTEL_GENAI_CAPTURE_TOOL_ARGUMENTS`, `OTEL_GENAI_CAPTURE_TOOL_RESULTS`,
+`OTEL_GENAI_CAPTURE_RETRIEVAL_QUERY`,
+`OTEL_GENAI_CAPTURE_RETRIEVAL_DOCUMENTS`, and
+`OTEL_GENAI_CAPTURE_EMBEDDING_TEXT`.
 
-Use the M9 `rag_rerank_tool` scenario as the representative trace: a chat
-workflow with retrieval, reranking, and tool execution. Run it with the same
-Open WebUI build and change only `OTEL_EXPORTER_OTLP_ENDPOINT` between
-backends. Keep content capture disabled unless the destination is a protected
-local test system.
+Embeddings *vectors* remain **disabled**, even with the master switch enabled;
+`OTEL_GENAI_CAPTURE_EMBEDDING_VECTORS=true` explicitly enables the custom
+`openwebui.embedding.vectors` field. There is no standard
+`gen_ai.embeddings` vector attribute; `gen_ai.embeddings.dimension.count`
+is used for dimensions.
 
-1. Start one of the following OTLP-compatible destinations and record its OTLP
-   HTTP endpoint:
-   - Local Phoenix: `http://localhost:6006/v1/traces`.
-   - Local or hosted Langfuse: use the project's OTLP HTTP endpoint, commonly
-     `https://<host>/api/public/otel/v1/traces`, together with its documented
-     `OTEL_EXPORTER_OTLP_HEADERS` authentication value.
-   - Generic Jaeger or Tempo: use the instance's OTLP HTTP `/v1/traces`
-     endpoint.
+Avoid enabling content capture for untrusted OTLP receivers. Tool outputs,
+queries and documents can contain sensitive data. Transport settings are
+controlled by the existing `OTEL_EXPORTER_OTLP_*` configuration.
 
-2. Run Open WebUI with the endpoint override, for example:
+## Application extensions
 
-   ```bash
-   OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:6006/v1/traces \
-   WEBUI_SECRET_KEY=test-secret-key \
-   uv run open-webui serve
-   ```
+Use standardized `gen_ai.*` attributes whenever possible.
+Only Open WebUI-specific details use `openwebui.*` attributes (such as
+`openwebui.message.id`, `openwebui.operation.purpose`,
+`openwebui.retrieval.collection_names`, and
+`openwebui.embedding.input`). No `studio.*` or `simpleaudit.*`
+attributes are required by the emitter.
 
-   For gRPC-only receivers, use the receiver's OTLP endpoint and set
-   `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`; otherwise the HTTP exporter is used.
+Known limits: provider `openai-compatible` describes the API adapter and does
+not assert the actual upstream model vendor; streaming responses may omit
+usage/finish reasons when the provider does not send them; vector search can
+supply distances without providing a relevance score.
 
-3. Exercise the `rag_rerank_tool` flow: submit a chat using a knowledge source,
-   allow reranking, and invoke a tool. Verify one trace contains the workflow,
-   inference, retrieval, rerank, and tool spans. Repeat step 2 for Phoenix,
-   Langfuse, and Jaeger/Tempo by changing only
-   `OTEL_EXPORTER_OTLP_ENDPOINT` (and, where required, the receiver's standard
-   OTLP headers).
+## Testing
 
-### Known differences
+Run:
 
-- Backend UIs use different names and nesting displays for the same OTLP
-  spans. The conformance contract is the span topology and standard semantic
-  attributes, not a particular vendor's screen layout.
-- Phoenix, Langfuse, Jaeger, and Tempo may omit or flatten attributes they do
-  not index or render. This is a presentation/indexing difference; no
-  backend-specific code belongs in this repository.
-- Langfuse may require authentication headers and may display GenAI spans in
-  its generation view only after recognizing the standard GenAI attributes.
-- Jaeger and Tempo generally show the generic trace tree and attributes but do
-  not provide vendor-specific GenAI generation summaries.
+```bash
+cd backend
+pytest -q open_webui/test/apps/webui/utils/test_genai_semconv_migration.py
+pytest -q open_webui/test/apps/webui/utils/test_genai_{tracer,inference,tools,retrieval,conformance,performance}.py
+```
 
-## Query generation
-
-For chats with file/knowledge context, the application emits an internal
-`rag.retrieval` span enclosing query generation followed by the already
-instrumented `retrieval` span (including optional embedding and reranking).
-The `/tasks/queries/completions` endpoint emits an internal
-`query_generation` span covering template preparation, task-model selection,
-pipeline filtering, cached-query reuse, and model inference. A model call
-appears underneath as a standard `chat {model}` span with
-`gen_ai.operation.name=chat`, provider/model information, token usage (when
-returned by the provider), and the existing
-`openwebui.operation.purpose=retrieval_query` classification. Native Ollama
-`/api/chat` is instrumented alongside OpenAI-compatible chat endpoints.
-
-The application task span contains `openwebui.query.type` (`web_search`
-or `retrieval`), `openwebui.query.cached`, `gen_ai.conversation.id`
-when available, and `openwebui.query.generated_count` when the model or
-cache returns an array of queries, including the default model response\nformat `{\"queries\": [...]}`. Query content is sent only when enabled:
-
-- `openwebui.query.original` requires `OTEL_GENAI_CAPTURE_RETRIEVAL_QUERY=true`.
-- `openwebui.query.generated` requires `OTEL_GENAI_CAPTURE_OUTPUTS=true`.
-- Both are truncated using `OTEL_GENAI_CONTENT_MAX_LENGTH`.
-
-Query generation is a standalone application task, not a retrieval request
-or a multi-step GenAI workflow. Therefore its span deliberately does not
-claim `gen_ai.operation.name=retrieval` or `invoke_workflow`. Subsequent\nactual search/retrieval spans retain their existing `retrieval` semantics.\nThe enclosing `rag.retrieval` span also remains an internal task, without\nclaiming a separate `gen_ai.operation.name`.
-A separate HTTP request creates a separate trace unless the client
-propagates a parent W3C trace context; `gen_ai.conversation.id` allows
-cross-request grouping by conversation without fabricating trace parents.
+Official schema source:
+[model/gen-ai JSON schemas](https://github.com/open-telemetry/semantic-conventions-genai/tree/633cbb060b16b1487ea2dcd23c4307edc1a03f01/model/gen-ai).

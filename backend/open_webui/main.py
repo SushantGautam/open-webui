@@ -1851,10 +1851,14 @@ async def chat_completion(
         with ai_tracer.workflow(
             'invoke_workflow open-webui.chat',
             operation_name='invoke_workflow',
+            workflow_name='open-webui.chat',
             conversation_id=metadata.get('chat_id'),
             message_id=metadata.get('message_id'),
             purpose='primary',
-            inputs=(lambda m: m.get('content') if isinstance(m, dict) else m)(metadata.get('user_message')),
+            inputs=(
+                [{'role': 'user', 'content': (metadata['user_message'].get('content') if isinstance(metadata['user_message'], dict) else metadata['user_message'])}]
+                if metadata.get('user_message') is not None else None
+            ),
             _defer_end=True,
         ) as workflow_span:
             result = await process_chat(request, form_data, user, metadata, model, tasks)
