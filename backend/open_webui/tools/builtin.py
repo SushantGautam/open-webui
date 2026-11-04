@@ -70,7 +70,7 @@ from open_webui.utils.json_codec import JSONCodec
 from open_webui.utils.notifications import notify_target
 from open_webui.utils.sanitize import sanitize_code
 from open_webui.utils.skill_files import SkillFile, SkillFileOperation, skill_content_page, skill_overview
-from open_webui.utils.telemetry.genai.retrieval import traced_knowledge_tool
+from open_webui.utils.telemetry.genai.retrieval import _embedding_model, instrument_embedding, traced_knowledge_tool
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
 
 _genai_tracer = GenAITracer()
@@ -296,6 +296,7 @@ async def calculate_timestamp(
 # =============================================================================
 
 
+@traced_knowledge_tool(_genai_tracer, 'web')
 async def search_web(
     query: str,
     count: Optional[int] = None,
@@ -335,6 +336,7 @@ async def search_web(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'web')
 async def fetch_url(
     url: str,
     __request__: Request = None,
@@ -841,6 +843,7 @@ async def list_memory_paths(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'memories')
 async def read_memory_path(
     path: str,
     count: int = 50,
@@ -875,6 +878,7 @@ async def read_memory_path(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'memories')
 async def search_memories(
     query: str = '',
     count: int = 5,
@@ -1137,6 +1141,7 @@ async def list_memories(
 # =============================================================================
 
 
+@traced_knowledge_tool(_genai_tracer, 'notes')
 async def search_notes(
     query: str,
     count: int = 5,
@@ -1234,6 +1239,7 @@ async def search_notes(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'notes')
 async def view_note(
     note_id: str,
     __request__: Request = None,
@@ -1591,6 +1597,7 @@ async def replace_note_content(
 # =============================================================================
 
 
+@traced_knowledge_tool(_genai_tracer, 'chats')
 async def search_chats(
     query: str,
     count: int = 5,
@@ -1689,6 +1696,7 @@ async def search_chats(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'chats')
 async def view_chat(
     chat_id: str,
     __request__: Request = None,
@@ -1894,6 +1902,7 @@ async def search_channels(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'channels')
 async def search_channel_messages(
     query: str,
     count: int = 10,
@@ -1975,6 +1984,7 @@ async def search_channel_messages(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'channels')
 async def view_channel_message(
     message_id: str,
     __request__: Request = None,
@@ -2036,6 +2046,7 @@ async def view_channel_message(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'channels')
 async def view_channel_thread(
     parent_message_id: str,
     __request__: Request = None,
@@ -2532,6 +2543,7 @@ async def list_chat_files(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'chat_files')
 async def grep_chat_files(
     pattern: str,
     file_id: Optional[str] = None,
@@ -2588,6 +2600,7 @@ async def grep_chat_files(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'chat_files')
 async def query_chat_files(
     query: str,
     file_id: Optional[str] = None,
@@ -2708,6 +2721,7 @@ async def query_chat_files(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'knowledge')
 async def grep_knowledge_files(
     pattern: str,
     file_id: Optional[str] = None,
@@ -2829,6 +2843,7 @@ async def grep_knowledge_files(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'files')
 async def view_file(
     file_id: str,
     offset: int = 0,
@@ -2943,6 +2958,7 @@ async def view_file(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer, 'knowledge')
 async def view_knowledge_file(
     file_id: str,
     offset: int = 0,
@@ -3232,7 +3248,7 @@ async def list_knowledge(
         return JSONCodec.dumps({'error': str(e)})
 
 
-@traced_knowledge_tool(_genai_tracer)
+@traced_knowledge_tool(_genai_tracer, 'knowledge')
 async def query_knowledge_files(
     query: str,
     knowledge_ids: Optional[list[str]] = None,
@@ -3399,7 +3415,12 @@ async def query_knowledge_files(
                 __request__,
                 collection_names=collection_names,
                 queries=[query],
-                embedding_function=lambda queries, prefix: embedding_function(queries, prefix=prefix, user=user_model),
+                # The query embedding is its own GenAI span, as in the RAG pipeline.
+                embedding_function=instrument_embedding(
+                    _genai_tracer,
+                    lambda queries, prefix: embedding_function(queries, prefix=prefix, user=user_model),
+                    model=_embedding_model(__request__),
+                ),
                 k=count,
                 user=user_model,
             )

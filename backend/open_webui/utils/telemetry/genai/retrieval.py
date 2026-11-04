@@ -3,6 +3,7 @@
 import functools
 import inspect
 import json
+import re
 import logging
 
 from open_webui.utils.telemetry.genai import compact, content, semconv
@@ -157,82 +158,163 @@ def traced_retrieval(tracer: GenAITracer):
     return decorator
 
 
-def _tool_chunks(result, maximum, limit):
-    """Retrieved chunks of a knowledge-search tool result in the retrieval document schema.
+_TEXT_KEYS = ('content', 'snippet', 'text', 'body')
+# A chunk's file_id names its file, not the chunk: it is kept as file_id, never as id.
+_ID_KEYS = ('document_id', 'chunk_id', 'id', 'note_id', 'chat_id', 'message_id')
+_SOURCE_KEYS = ('source', 'filename', 'title', 'name', 'link', 'url', 'path')
+_CONTAINER_KEYS = ('messages', 'replies', 'results', 'items', 'documents')
+_QUERY_ARGS = ('query', 'pattern', 'url', 'command', 'path', 'file_id', 'note_id', 'chat_id', 'message_id')
+# A grep line: "<file id>  <filename>:<line>: <text>".
+_GREP_LINE = re.compile(r'^(?P<id>\S+)\s{2}(?P<file>[^:\n]+):(?P<line>\d+): (?P<text>.*)$')
+_NO_RESULT_PREFIXES = ('No matches for', 'Error:', 'Error -', 'No accessible files', 'No files')
 
-    The tool returns a JSON list of chunks (``content``, ``source``, ``file_id``,
-    optional ``distance``). Only chunks with text content are documents; an error
-    object or an inventory listing yields none. Distances are not relevance scores.
+
+def _document(item, limit, source=None):
+    """One retrieval document from a result object that carries text, else None."""
+    if not isinstance(item, dict):
+        return None
+    text = next((item[key] for key in _TEXT_KEYS if isinstance(item.get(key), str) and item[key]), None)
+    if text is None:
+        return None
+    doc = {}
+    for key in _ID_KEYS:
+        if item.get(key) is not None and not isinstance(item[key], (dict, list)):
+            doc['id'] = str(item[key])
+            break
+    score = item.get('score')
+    if isinstance(score, (float, int)) and not isinstance(score, bool):
+        doc['score'] = float(score)
+    name = next((item[key] for key in _SOURCE_KEYS if isinstance(item.get(key), str) and item[key]), source)
+    if isinstance(name, str) and name:
+        doc['source'] = name[:limit]
+    for key in ('link', 'url'):
+        if isinstance(item.get(key), str) and item[key]:
+            doc['url'] = item[key][:limit]
+            break
+    if item.get('file_id'):
+        doc['file_id'] = str(item['file_id'])
+    doc['content'] = text[:limit]
+    return doc
+
+
+def _text_documents(text, limit, source=None):
+    """Documents from a plain-text tool result: grep lines grouped by file, else the text itself."""
+    stripped = text.strip()
+    if not stripped or stripped.startswith(_NO_RESULT_PREFIXES):
+        return []
+    files = {}
+    for line in stripped.splitlines():
+        match = _GREP_LINE.match(line)
+        if match:
+            entry = files.setdefault(match['id'], {'file_id': match['id'], 'source': match['file'], 'lines': []})
+            entry['lines'].append(f'{match["line"]}: {match["text"]}')
+    if files:
+        return [
+            {'file_id': f['file_id'], 'source': f['source'][:limit], 'content': '\n'.join(f['lines'])[:limit]}
+            for f in files.values()
+        ]
+    doc = {'content': stripped[:limit]}
+    if source:
+        doc['source'] = str(source)[:limit]
+    return [doc]
+
+
+def _tool_documents(result, maximum, limit, source=None):
+    """What a content-reading tool returned, in the retrieval document schema.
+
+    Handles every shape the built-in tools return: a JSON list of chunks or
+    results, one JSON object with text (a file, note or message), an object
+    holding a list of messages or replies, and plain text (grep lines, command
+    output, a fetched page). Error objects, "no matches" text and metadata-only
+    listings yield no documents. Distances are not reported as scores.
     """
     if isinstance(result, str):
         try:
-            result = json.loads(result)
+            parsed = json.loads(result)
         except (TypeError, ValueError):
+            return _text_documents(result, limit, source)[:maximum]
+        if isinstance(parsed, str):
+            return _text_documents(parsed, limit, source)[:maximum]
+        result = parsed
+    items = []
+    if isinstance(result, dict):
+        if result.get('error'):
             return []
-    if not isinstance(result, list):
-        return []
-    documents = []
-    for chunk in result:
-        if len(documents) >= maximum:
-            break
-        if not isinstance(chunk, dict) or not isinstance(chunk.get('content'), str):
-            continue
-        doc = {}
-        for key in ('document_id', 'chunk_id', 'id', 'note_id'):
-            if chunk.get(key) is not None:
-                doc['id'] = str(chunk[key])
-                break
-        score = chunk.get('score')
-        if isinstance(score, (float, int)) and not isinstance(score, bool):
-            doc['score'] = float(score)
-        if isinstance(chunk.get('source'), str):
-            doc['source'] = chunk['source'][:limit]
-        if chunk.get('file_id'):
-            doc['file_id'] = str(chunk['file_id'])
-        doc['content'] = chunk['content'][:limit]
-        documents.append(doc)
-    return documents
+        title = next((result[k] for k in ('title', 'filename', 'name') if isinstance(result.get(k), str)), source)
+        own = _document(result, limit, source)
+        if own:
+            items.append(own)
+        for key in _CONTAINER_KEYS:
+            for item in result.get(key) or [] if isinstance(result.get(key), list) else []:
+                doc = _document(item, limit, title)
+                if doc:
+                    items.append(doc)
+        for key in ('parent_message', 'message'):
+            doc = _document(result.get(key), limit, title)
+            if doc:
+                items.append(doc)
+    elif isinstance(result, list):
+        items = [doc for doc in (_document(item, limit, source) for item in result) if doc]
+    return items[:maximum]
 
 
-def traced_knowledge_tool(tracer: GenAITracer):
-    """Trace a knowledge-search tool's lookup as a GenAI ``retrieval`` span.
+def _tool_chunks(result, maximum, limit):
+    """Backwards-compatible name: the documents of a knowledge-search result."""
+    return _tool_documents(result, maximum, limit)
 
-    Agentic knowledge search (e.g. ``query_knowledge_files``) bypasses the RAG
-    pipeline traced by ``traced_retrieval``, so without this the chunks it returns
-    exist only in the parent ``execute_tool`` span's result. The retrieval span is
-    a child of that tool span and carries ``gen_ai.retrieval.documents``.
+
+def _first_argument(values, names):
+    return next((values[name] for name in names if isinstance(values.get(name), (str, int)) and values[name]), None)
+
+
+def traced_knowledge_tool(tracer: GenAITracer, data_source: str | None = None):
+    """Trace a content-reading tool as a GenAI ``retrieval`` span with its documents.
+
+    Built-in tools that read stored or web content (knowledge files, chat files,
+    notes, chats, channel messages, memories, web pages) bypass the RAG pipeline
+    traced by ``traced_retrieval``, so without this what they return exists only
+    in the parent ``execute_tool`` span's result. The retrieval span is a child of
+    that tool span; ``data_source`` names where the content came from
+    (``gen_ai.data_source.id``). Inventory listings and write tools are not wrapped.
     """
 
     def decorator(function):
+        signature = inspect.signature(function)
+
         @functools.wraps(function)
         async def wrapped(*args, **kwargs):
-            values = inspect.signature(function).bind_partial(*args, **kwargs).arguments
+            values = signature.bind_partial(*args, **kwargs).arguments
+            query = _first_argument(values, _QUERY_ARGS)
             with tracer.retrieval(
-                'retrieval',
+                f'retrieval {data_source}' if data_source else 'retrieval',
                 operation_name='retrieval',
-                retrieval_query=values.get('query'),
-                retrieval_top_k=values.get('count'),
+                retrieval_query=None if query is None else str(query),
+                retrieval_top_k=values.get('count') if isinstance(values.get('count'), int) else None,
+                data_source_id=data_source,
             ) as span:
                 result = await function(*args, **kwargs)
-                # Fail-open: a telemetry error must never break the knowledge search.
+                # Fail-open: a telemetry error must never break the tool.
                 try:
                     if span.is_recording() and tracer.config.capture_retrieval_documents:
-                        documents = _tool_chunks(
-                            result, tracer.config.retrieval_max_documents, tracer.config.content_max_length
+                        source = _first_argument(values, ('url', 'path', 'file_id', 'note_id', 'chat_id'))
+                        documents = _tool_documents(
+                            result,
+                            tracer.config.retrieval_max_documents,
+                            tracer.config.content_max_length,
+                            None if source is None else str(source),
                         )
                         if documents:
                             span.set_attribute(
                                 semconv.GEN_AI_RETRIEVAL_DOCUMENTS,
                                 content.json_attribute(documents, tracer.config.content_max_length),
                             )
-                            if tracer.config.content_mode == 'compact':
-                                # The tool's result and the later tool response carry these
-                                # same chunks: they refer back to the documents.
-                                compact.remember_value(
-                                    span, semconv.GEN_AI_RETRIEVAL_DOCUMENTS, content.parse_json(result)
-                                )
+                            parsed = content.parse_json(result)
+                            if tracer.config.content_mode == 'compact' and isinstance(parsed, list):
+                                # A list of chunks: the tool's result and the later tool
+                                # response carry these same chunks and refer back to them.
+                                compact.remember_value(span, semconv.GEN_AI_RETRIEVAL_DOCUMENTS, parsed)
                 except Exception:
-                    logger.exception('Unable to record GenAI knowledge retrieval documents')
+                    logger.exception('Unable to record GenAI retrieval documents for a tool')
                 return result
 
         return wrapped

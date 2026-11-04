@@ -6,6 +6,9 @@ import re
 from typing import Any
 
 from fastapi import HTTPException
+from open_webui.utils.telemetry.genai import content as content_codec
+from open_webui.utils.telemetry.genai import semconv
+from open_webui.utils.telemetry.genai.tracer import GenAITracer
 from open_webui.models.config import Config
 from open_webui.models.memories import Memories
 from open_webui.utils.access_control import has_permission
@@ -13,6 +16,7 @@ from open_webui.utils.json_codec import JSONCodec
 from open_webui.utils.misc import add_or_update_system_message, get_content_from_message
 
 log = logging.getLogger(__name__)
+_genai_tracer = GenAITracer()
 
 MEMORY_CONTEXT_OPEN = '<memory_context>'
 MEMORY_CONTEXT_CLOSE = '</memory_context>'
@@ -287,6 +291,32 @@ def model_allows_memory(model: dict | None) -> bool:
     return ((model or {}).get('info', {}).get('meta', {}).get('capabilities') or {}).get('memory', True)
 
 
+def _record_memory_documents(span, results) -> None:
+    """Put recalled memories on the retrieval span as ``gen_ai.retrieval.documents`` (fail-open)."""
+    try:
+        if not span.is_recording() or not _genai_tracer.config.capture_retrieval_documents:
+            return
+        docs = (getattr(results, 'documents', None) or [[]])[0] or []
+        ids = (getattr(results, 'ids', None) or [[]])[0] or []
+        metas = (getattr(results, 'metadatas', None) or [[]])[0] or []
+        limit = _genai_tracer.config.content_max_length
+        documents = []
+        for index, doc in enumerate(docs[: _genai_tracer.config.retrieval_max_documents]):
+            if not doc:
+                continue
+            record = {'content': str(doc)[:limit]}
+            if index < len(ids) and ids[index]:
+                record['id'] = str(ids[index])
+            meta = metas[index] if index < len(metas) and isinstance(metas[index], dict) else {}
+            if meta.get('path'):
+                record['source'] = str(meta['path'])[:limit]
+            documents.append(record)
+        if documents:
+            span.set_attribute(semconv.GEN_AI_RETRIEVAL_DOCUMENTS, content_codec.json_attribute(documents, limit))
+    except Exception:
+        log.exception('Unable to record recalled memories on the retrieval span')
+
+
 async def add_memory_context(request, form_data: dict, user, model: dict | None = None):
     if not model_allows_memory(model):
         return form_data
@@ -309,12 +339,21 @@ async def add_memory_context(request, form_data: dict, user, model: dict | None 
 
     all_memories = await Memories.get_memories_by_user_id(user.id)
     results = None
-    try:
-        from open_webui.routers.memories import QueryMemoryForm, query_memory
+    # Memory recall is a retrieval: record what was found for the model's context.
+    with _genai_tracer.retrieval(
+        'retrieval memories',
+        operation_name='retrieval',
+        retrieval_query=query,
+        retrieval_top_k=8,
+        data_source_id='memories',
+    ) as span:
+        try:
+            from open_webui.routers.memories import QueryMemoryForm, query_memory
 
-        results = await query_memory(request, QueryMemoryForm(content=query, k=8), user)
-    except Exception as e:
-        log.debug(e)
+            results = await query_memory(request, QueryMemoryForm(content=query, k=8), user)
+        except Exception as e:
+            log.debug(e)
+        _record_memory_documents(span, results)
 
     sections = {'user': [], 'neighborhood': [], 'context': []}
     seen_ids = set()

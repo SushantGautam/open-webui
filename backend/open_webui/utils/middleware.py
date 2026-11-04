@@ -1122,22 +1122,33 @@ async def chat_completion_tools_handler(
                         allowed_params = spec.get('parameters', {}).get('properties', {}).keys()
                         tool_function_params = {k: v for k, v in tool_function_params.items() if k in allowed_params}
 
-                    if tool.get('direct', False):
-                        tool_result = await event_caller(
-                            {
-                                'type': 'execute:tool',
-                                'data': {
-                                    'id': str(uuid4()),
-                                    'name': tool_function_name,
-                                    'params': tool_function_params,
-                                    'server': tool.get('server', {}),
-                                    'session_id': metadata.get('session_id', None),
-                                },
-                            }
-                        )
-                    else:
-                        tool_function = tool['callable']
-                        tool_result = await tool_function(**tool_function_params)
+                    async def invoke_tool():
+                        if tool.get('direct', False):
+                            return await event_caller(
+                                {
+                                    'type': 'execute:tool',
+                                    'data': {
+                                        'id': str(uuid4()),
+                                        'name': tool_function_name,
+                                        'params': tool_function_params,
+                                        'server': tool.get('server', {}),
+                                        'session_id': metadata.get('session_id', None),
+                                    },
+                                }
+                            )
+                        return await tool['callable'](**tool_function_params)
+
+                    # Default (non-native) function calling runs tools here: trace them
+                    # exactly as the native path does (execute_tool_call).
+                    tool_result = await traced_tool(
+                        ai_tracer,
+                        name=tool_function_name,
+                        call_id=None,
+                        tool_type=tool_type,
+                        arguments=tool_function_params,
+                        direct=direct_tool,
+                        call=invoke_tool,
+                    )
 
                 except Exception as e:
                     tool_result = {'error': str(e)}

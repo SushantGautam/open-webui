@@ -10,6 +10,8 @@ from aiocache import cached
 from fastapi import HTTPException, Request, status
 from open_webui.env import BYPASS_MODEL_ACCESS_CONTROL, GLOBAL_LOG_LEVEL
 from open_webui.functions import generate_function_chat_completion
+from open_webui.utils.telemetry.genai.inference import traced_inference
+from open_webui.utils.telemetry.genai.tracer import GenAITracer
 from open_webui.models.models import Models
 from open_webui.models.users import UserModel
 from open_webui.routers.ollama import (
@@ -42,6 +44,7 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
+_genai_tracer = GenAITracer()
 
 
 # When the question has been asked, let silence not be the
@@ -279,7 +282,15 @@ async def generate_chat_completion(
 
         if model.get('pipe'):
             # Below does not require bypass_filter because this is the only route the uses this function and it is already bypassing the filter
-            return await generate_function_chat_completion(request, form_data, user=user, models=models)
+            # A pipe (function) model is a model call too: trace it like the provider routers do.
+            pipe_payload = dict(form_data)
+
+            async def call_pipe():
+                return await generate_function_chat_completion(request, form_data, user=user, models=models)
+
+            return await traced_inference(
+                _genai_tracer, provider='open-webui.function', request_payload=pipe_payload, call=call_pipe
+            )
         if model.get('owned_by') == 'ollama':
             # Apply before Ollama conversion so tool follow-ups keep the model system prompt
             if not bypass_system_prompt:
