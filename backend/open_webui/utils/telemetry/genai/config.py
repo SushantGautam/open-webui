@@ -28,6 +28,9 @@ class GenAIConfig:
     content_max_length: int = 10000
     retrieval_max_documents: int = 100
     exception_max_length: int = 2000
+    # 'compact': content already recorded in the trace becomes a reference
+    # (see compact.py); 'full': standard self-contained spans.
+    content_mode: str = 'compact'
 
     @classmethod
     def from_env(cls) -> 'GenAIConfig':
@@ -48,4 +51,7 @@ class GenAIConfig:
             capture_embedding_text=_flag('OTEL_GENAI_CAPTURE_EMBEDDING_TEXT', master),
             capture_embedding_vectors=_flag('OTEL_GENAI_CAPTURE_EMBEDDING_VECTORS', False),
             content_max_length=max_length,
+            content_mode='full'
+            if os.getenv('OTEL_GENAI_CONTENT_MODE', 'compact').strip().lower() == 'full'
+            else 'compact',
         )

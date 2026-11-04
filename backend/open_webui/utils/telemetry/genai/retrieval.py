@@ -4,7 +4,7 @@ import functools
 import inspect
 import json
 
-from open_webui.utils.telemetry.genai import content, semconv
+from open_webui.utils.telemetry.genai import compact, content, semconv
 from open_webui.utils.telemetry.genai.extractors import capture
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
 
@@ -220,6 +220,10 @@ def traced_knowledge_tool(tracer: GenAITracer):
                             semconv.GEN_AI_RETRIEVAL_DOCUMENTS,
                             content.json_attribute(documents, tracer.config.content_max_length),
                         )
+                        if tracer.config.content_mode == 'compact':
+                            # The tool's result and the later tool response carry these
+                            # same chunks: they refer back to the documents.
+                            compact.remember_value(span, semconv.GEN_AI_RETRIEVAL_DOCUMENTS, content.parse_json(result))
                 return result
 
         return wrapped

@@ -1,6 +1,6 @@
 """Schema-aware GenAI content conversion for OTLP span attributes."""
 
-from open_webui.utils.telemetry.genai import content
+from open_webui.utils.telemetry.genai import compact, content, semconv
 from open_webui.utils.telemetry.genai.config import GenAIConfig
 
 
@@ -12,7 +12,9 @@ def capture(value, *, enabled: bool, config: GenAIConfig):
     return content.json_attribute(value, config.content_max_length)
 
 
-def capture_attributes(attributes: dict, config: GenAIConfig) -> dict:
+def capture_attributes(attributes: dict, config: GenAIConfig, span=None) -> dict:
+    """Captured content attributes; with a span in compact mode, repeats become references."""
+    compacting = span is not None and config.content_mode == 'compact'
     flags = {
         'inputs': config.capture_inputs,
         'outputs': config.capture_outputs,
@@ -33,10 +35,14 @@ def capture_attributes(attributes: dict, config: GenAIConfig) -> dict:
                 continue
             if name == 'inputs':
                 value = content.input_messages(value, config.content_max_length)
+                if compacting and value:
+                    value = compact.compact_messages(span, semconv.GEN_AI_INPUT_MESSAGES, value)
             elif name == 'outputs':
                 value = content.output_messages(value, config.content_max_length)
             elif name == 'system_instructions':
                 value = content.system_instructions(value, config.content_max_length)
+                if compacting and value:
+                    value = compact.compact_value(span, semconv.GEN_AI_SYSTEM_INSTRUCTIONS, value)
             elif name in ('tool_arguments', 'tool_result'):
                 value = content.as_object(value, result=(name == 'tool_result'))
             elif name == 'retrieval_documents' and not isinstance(value, list):

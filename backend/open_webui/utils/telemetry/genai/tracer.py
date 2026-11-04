@@ -1,7 +1,7 @@
 import logging
 from contextlib import contextmanager
 
-from open_webui.utils.telemetry.genai import content, context, extractors, semconv
+from open_webui.utils.telemetry.genai import compact, content, context, extractors, semconv
 from open_webui.utils.telemetry.genai.config import GenAIConfig
 from opentelemetry import trace
 from opentelemetry.trace import SpanKind, StatusCode
@@ -71,6 +71,8 @@ class GenAITracer:
                 if self.config.capture_outputs:
                     messages = content.output_messages(response, self.config.content_max_length)
                     if messages:
+                        if self.config.content_mode == 'compact':
+                            compact.remember_messages(span, semconv.GEN_AI_OUTPUT_MESSAGES, messages)
                         span.set_attribute(
                             semconv.GEN_AI_OUTPUT_MESSAGES,
                             content.json_attribute(messages, self.config.content_max_length),
@@ -132,7 +134,10 @@ class GenAITracer:
                 token.__enter__()
                 if span.is_recording():
                     attrs.setdefault('operation_name', operation)
-                    safe_attrs = extractors.capture_attributes(attrs, self.config)
+                    # Workflow wrappers repeat the turn's input; content is kept on model/tool spans.
+                    safe_attrs = extractors.capture_attributes(
+                        attrs, self.config, span=None if kind == 'workflow' else span
+                    )
                     resolved = {
                         semconv.attribute_key(key): value for key, value in safe_attrs.items() if value is not None
                     }

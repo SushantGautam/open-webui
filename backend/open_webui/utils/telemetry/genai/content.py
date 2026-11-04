@@ -110,6 +110,9 @@ def _parse_json(value):
     return value
 
 
+parse_json = _parse_json
+
+
 def input_messages(messages, limit):
     """Map full chat history to gen_ai.input.messages (ordered role/parts)."""
     if not isinstance(messages, list):
