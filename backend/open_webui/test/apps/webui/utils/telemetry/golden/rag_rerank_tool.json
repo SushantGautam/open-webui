@@ -3,6 +3,7 @@
     "name": "embeddings",
     "parent": "retrieval",
     "attributes": [
+      "gen_ai.embeddings.dimension.count",
       "gen_ai.operation.name"
     ]
   },
