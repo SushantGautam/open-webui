@@ -55,7 +55,10 @@ def test_content_is_truncated_when_capture_is_enabled():
     provider = TracerProvider()
     provider.add_span_processor(SimpleSpanProcessor(exporter))
     config = GenAIConfig(capture_inputs=True, capture_outputs=True, content_max_length=5)
-    with GenAITracer(provider.get_tracer('test'), config).inference(inputs='123456789', outputs='abcdefgh'):
+    with GenAITracer(provider.get_tracer('test'), config).inference(
+        inputs=[{'role': 'user', 'content': '123456789'}],
+        outputs={'choices': [{'message': {'role': 'assistant', 'content': 'abcdefgh'}}]},
+    ):
         pass
     span = exporter.get_finished_spans()[0]
     assert json.loads(span.attributes['gen_ai.input.messages'])[0]['parts'][0]['content'] == '12345'
