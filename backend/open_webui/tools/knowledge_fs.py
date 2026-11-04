@@ -26,7 +26,11 @@ from open_webui.env import (
     KNOWLEDGE_GREP_MAX_MATCHES,
 )
 
+from open_webui.utils.telemetry.genai.retrieval import traced_knowledge_tool
+from open_webui.utils.telemetry.genai.tracer import GenAITracer
+
 log = logging.getLogger(__name__)
+_genai_tracer = GenAITracer()
 
 DEFAULT_HEAD_LINES = 10
 DEFAULT_TAIL_LINES = 10
@@ -1182,6 +1186,7 @@ async def _execute_pipeline(
 # =============================================================================
 
 
+@traced_knowledge_tool(_genai_tracer, 'knowledge')
 async def kb_exec(
     command: str,
     __request__: Request = None,
