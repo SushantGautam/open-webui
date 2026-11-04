@@ -47,9 +47,11 @@ def test_input_and_output_contain_standard_role_parts_and_tool_calls():
     messages = [
         {'role': 'system', 'content': 'Follow the policy'},
         {'role': 'user', 'content': 'When is my refund?'},
-        {'role': 'assistant', 'content': None, 'tool_calls': [
-            {'id': 'call-42', 'function': {'name': 'query_knowledge', 'arguments': '{"q":"refund"}'}}
-        ]},
+        {
+            'role': 'assistant',
+            'content': None,
+            'tool_calls': [{'id': 'call-42', 'function': {'name': 'query_knowledge', 'arguments': '{"q":"refund"}'}}],
+        },
         {'role': 'tool', 'tool_call_id': 'call-42', 'content': '{"status": "ok"}'},
     ]
     rendered = content.input_messages(messages, 100)
@@ -57,13 +59,13 @@ def test_input_and_output_contain_standard_role_parts_and_tool_calls():
     assert rendered[2]['parts'] == [
         {'type': 'tool_call', 'name': 'query_knowledge', 'id': 'call-42', 'arguments': {'q': 'refund'}}
     ]
-    assert rendered[3]['parts'] == [
-        {'type': 'tool_call_response', 'id': 'call-42', 'response': {'status': 'ok'}}
-    ]
-    response = {'choices': [
-        {'message': {'role': 'assistant', 'content': 'first'}},
-        {'message': {'role': 'assistant', 'content': 'second'}},
-    ]}
+    assert rendered[3]['parts'] == [{'type': 'tool_call_response', 'id': 'call-42', 'response': {'status': 'ok'}}]
+    response = {
+        'choices': [
+            {'message': {'role': 'assistant', 'content': 'first'}},
+            {'message': {'role': 'assistant', 'content': 'second'}},
+        ]
+    }
     assert len(content.output_messages(response, 100)) == 2
     assert content.output_messages(response, 100)[1]['parts'][0]['content'] == 'second'
     assert json.loads(content.json_attribute(rendered, 3))[1]['parts'][0]['content'] == 'Whe'
@@ -89,7 +91,10 @@ async def test_streamed_tool_calls_are_parts_and_usage_is_recorded():
         return type('Response', (), {'body_iterator': Streaming().body()})()
 
     response = await traced_inference(
-        tracer, provider='openai-compatible', request_payload={'model': 'qwen', 'stream': True}, call=call,
+        tracer,
+        provider='openai-compatible',
+        request_payload={'model': 'qwen', 'stream': True},
+        call=call,
     )
     assert not exporter.get_finished_spans()
     [chunk async for chunk in response.body_iterator]
@@ -114,8 +119,13 @@ async def test_knowledge_inventory_stays_a_tool_result_not_retrieval_documents()
         return {'knowledge_bases': [{'files': [{'id': 'file-1', 'filename': 'policy.md'}]}]}
 
     await traced_tool(
-        tracer, name='list_knowledge', call_id='call-1', tool_type='builtin',
-        arguments={'knowledge_id': 'kb-1'}, direct=False, call=call,
+        tracer,
+        name='list_knowledge',
+        call_id='call-1',
+        tool_type='builtin',
+        arguments={'knowledge_id': 'kb-1'},
+        direct=False,
+        call=call,
     )
     span = exporter.get_finished_spans()[0]
     assert 'gen_ai.retrieval.documents' not in span.attributes
@@ -124,15 +134,17 @@ async def test_knowledge_inventory_stays_a_tool_result_not_retrieval_documents()
 
 
 def test_retrieval_documents_are_flattened_and_never_use_distance_as_score():
-    sources = [{
-        'source': {'id': 'file-1', 'name': 'policy.md'},
-        'document': ['content-1', 'content-2'],
-        'metadata': [
-            {'file_id': 'file-1', 'document_id': 'chunk-1', 'name': 'policy.md'},
-            {'file_id': 'file-1', 'document_id': 'chunk-2', 'score': 0.91},
-        ],
-        'distances': [0.2, 0.5],
-    }]
+    sources = [
+        {
+            'source': {'id': 'file-1', 'name': 'policy.md'},
+            'document': ['content-1', 'content-2'],
+            'metadata': [
+                {'file_id': 'file-1', 'document_id': 'chunk-1', 'name': 'policy.md'},
+                {'file_id': 'file-1', 'document_id': 'chunk-2', 'score': 0.91},
+            ],
+            'distances': [0.2, 0.5],
+        }
+    ]
     docs = _retrieved_documents(sources, 100, 100)
     assert len(docs) == 2
     assert docs[0] == {'id': 'chunk-1', 'source': 'policy.md', 'file_id': 'file-1', 'content': 'content-1'}

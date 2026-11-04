@@ -1,13 +1,16 @@
 """Schema-aware GenAI content conversion for OTLP span attributes."""
+
 from open_webui.utils.telemetry.genai import content
 from open_webui.utils.telemetry.genai.config import GenAIConfig
+
 
 def capture(value, *, enabled: bool, config: GenAIConfig):
     if not enabled or value is None:
         return None
     if isinstance(value, str):
-        return value[:config.content_max_length]
+        return value[: config.content_max_length]
     return content.json_attribute(value, config.content_max_length)
+
 
 def capture_attributes(attributes: dict, config: GenAIConfig) -> dict:
     flags = {
@@ -38,7 +41,14 @@ def capture_attributes(attributes: dict, config: GenAIConfig) -> dict:
                 value = content.as_object(value, result=(name == 'tool_result'))
             elif name == 'retrieval_documents' and not isinstance(value, list):
                 continue
-            if name in ('inputs', 'outputs', 'system_instructions', 'tool_arguments', 'tool_result', 'retrieval_documents'):
+            if name in (
+                'inputs',
+                'outputs',
+                'system_instructions',
+                'tool_arguments',
+                'tool_result',
+                'retrieval_documents',
+            ):
                 if value is None:
                     continue
                 value = content.json_attribute(value, config.content_max_length)

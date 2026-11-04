@@ -1856,8 +1856,18 @@ async def chat_completion(
             message_id=metadata.get('message_id'),
             purpose='primary',
             inputs=(
-                [{'role': 'user', 'content': (metadata['user_message'].get('content') if isinstance(metadata['user_message'], dict) else metadata['user_message'])}]
-                if metadata.get('user_message') is not None else None
+                [
+                    {
+                        'role': 'user',
+                        'content': (
+                            metadata['user_message'].get('content')
+                            if isinstance(metadata['user_message'], dict)
+                            else metadata['user_message']
+                        ),
+                    }
+                ]
+                if metadata.get('user_message') is not None
+                else None
             ),
             _defer_end=True,
         ) as workflow_span:

@@ -109,11 +109,13 @@ def traced_retrieval(tracer: GenAITracer):
             values = bound.arguments
             queries = values.get('queries') or []
             query = queries[0] if isinstance(queries, list) and queries else queries
-            collections = sorted({
-                item['collection_name']
-                for item in values.get('items') or []
-                if isinstance(item, dict) and isinstance(item.get('collection_name'), str)
-            })
+            collections = sorted(
+                {
+                    item['collection_name']
+                    for item in values.get('items') or []
+                    if isinstance(item, dict) and isinstance(item.get('collection_name'), str)
+                }
+            )
             data_source_id = collections[0] if len(collections) == 1 else None
             with tracer.retrieval(
                 f'retrieval {data_source_id}' if data_source_id else 'retrieval',
@@ -145,5 +147,7 @@ def traced_retrieval(tracer: GenAITracer):
                             )
                     span.set_attribute(semconv.OPENWEBUI_RETRIEVAL_SELECTED_COUNT, len(result))
                 return result
+
         return wrapped
+
     return decorator

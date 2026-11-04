@@ -1,4 +1,5 @@
 """Inference spans following the OTel GenAI client inference conventions."""
+
 from collections.abc import Awaitable, Callable
 
 from open_webui.utils.telemetry.genai.content import StreamCapture

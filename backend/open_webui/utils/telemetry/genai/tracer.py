@@ -170,5 +170,3 @@ class GenAITracer:
                     span.end()
                 except Exception:
                     logger.exception('Unable to end GenAI span')
-
-

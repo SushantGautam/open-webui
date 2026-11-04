@@ -10,10 +10,21 @@ import json
 
 # Schema discriminators, identifiers and external references must not be
 # truncated: doing so can invalidate otherwise valid role/parts messages.
-_STRUCTURAL_FIELDS = frozenset({
-    'role', 'type', 'name', 'id', 'file_id', 'tool_call_id',
-    'modality', 'mime_type', 'finish_reason', 'uri', 'filename',
-})
+_STRUCTURAL_FIELDS = frozenset(
+    {
+        'role',
+        'type',
+        'name',
+        'id',
+        'file_id',
+        'tool_call_id',
+        'modality',
+        'mime_type',
+        'finish_reason',
+        'uri',
+        'filename',
+    }
+)
 
 
 def clipped(value, limit, *, field=None):
@@ -23,10 +34,7 @@ def clipped(value, limit, *, field=None):
     if isinstance(value, list):
         return [clipped(item, limit) for item in value[:100]]
     if isinstance(value, dict):
-        return {
-            str(key): clipped(item, limit, field=str(key))
-            for key, item in list(value.items())[:100]
-        }
+        return {str(key): clipped(item, limit, field=str(key)) for key, item in list(value.items())[:100]}
     return value
 
 
@@ -240,18 +248,18 @@ class StreamCapture:
             for key, target in (('content', 'text'), ('reasoning', 'reasoning')):
                 chunk = delta.get(key)
                 if isinstance(chunk, str):
-                    state[target] += chunk[:max(0, self.limit - len(state[target]))]
+                    state[target] += chunk[: max(0, self.limit - len(state[target]))]
             for position, call in enumerate(delta.get('tool_calls') or []):
                 if not isinstance(call, dict):
                     continue
                 number = call.get('index', position)
                 tool = state['tools'].setdefault(number, {'id': '', 'name': '', 'arguments': ''})
                 if isinstance(call.get('id'), str):
-                    tool['id'] += call['id'][:max(0, self.limit - len(tool['id']))]
+                    tool['id'] += call['id'][: max(0, self.limit - len(tool['id']))]
                 function = call.get('function') or {}
                 for key in ('name', 'arguments'):
                     if isinstance(function.get(key), str):
-                        tool[key] += function[key][:max(0, self.limit - len(tool[key]))]
+                        tool[key] += function[key][: max(0, self.limit - len(tool[key]))]
 
     def finish(self):
         if self.pending:
@@ -266,7 +274,9 @@ class StreamCapture:
             tool_calls = []
             for tool in state['tools'].values():
                 if tool['name']:
-                    tool_calls.append({'id': tool['id'], 'function': {'name': tool['name'], 'arguments': tool['arguments']}})
+                    tool_calls.append(
+                        {'id': tool['id'], 'function': {'name': tool['name'], 'arguments': tool['arguments']}}
+                    )
             if tool_calls:
                 message['tool_calls'] = tool_calls
             self.metadata['choices'].append({'message': message, 'finish_reason': state['finish_reason']})

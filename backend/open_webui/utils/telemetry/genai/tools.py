@@ -1,4 +1,5 @@
 """GenAI tool-execution spans. Knowledge listings are not retrieval spans."""
+
 from collections.abc import Awaitable, Callable
 
 from open_webui.utils.telemetry.genai import content, semconv
@@ -15,8 +16,10 @@ _TOOL_TYPES = {
     'datastore': 'datastore',
 }
 
+
 def classify_tool(tool_type: str | None, direct: bool = False) -> str:
     return _TOOL_TYPES.get((tool_type or '').lower(), 'function')
+
 
 async def traced_tool(
     tracer: GenAITracer,

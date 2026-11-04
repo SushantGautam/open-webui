@@ -1,13 +1,17 @@
 """GenAI content capture configuration (privacy-preserving defaults)."""
+
 import os
 from dataclasses import dataclass
+
 
 def _as_bool(value):
     return (value or '').strip().lower() in {'1', 'true', 'yes', 'on'}
 
+
 def _flag(key, default):
     value = os.getenv(key)
     return default if value is None else _as_bool(value)
+
 
 @dataclass(frozen=True)
 class GenAIConfig:
