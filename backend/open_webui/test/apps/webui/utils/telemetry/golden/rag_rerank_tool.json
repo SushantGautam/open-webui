@@ -1,58 +1,49 @@
 [
-	{
-		"name": "embeddings",
-		"parent": "retrieval",
-		"attributes": [
-			"embedding_text",
-			"gen_ai.operation.name",
-			"openinference.span.kind"
-		]
-	},
-	{
-		"name": "vector_search",
-		"parent": "retrieval",
-		"attributes": []
-	},
-	{
-		"name": "rerank",
-		"parent": "retrieval",
-		"attributes": [
-			"gen_ai.retrieval.query.text",
-			"openinference.span.kind",
-			"openwebui.retrieval.candidate_count"
-		]
-	},
-	{
-		"name": "execute_tool retrieval-tool",
-		"parent": "retrieval",
-		"attributes": [
-			"gen_ai.operation.name",
-			"gen_ai.tool.call.arguments",
-			"gen_ai.tool.call.id",
-			"gen_ai.tool.call.result",
-			"gen_ai.tool.name",
-			"gen_ai.tool.type",
-			"openinference.span.kind"
-		]
-	},
-	{
-		"name": "retrieval",
-		"parent": "invoke_workflow open-webui.chat",
-		"attributes": [
-			"gen_ai.operation.name",
-			"gen_ai.retrieval.documents",
-			"gen_ai.retrieval.query.text",
-			"openinference.span.kind",
-			"openwebui.retrieval.top_k"
-		]
-	},
-	{
-		"name": "invoke_workflow open-webui.chat",
-		"parent": null,
-		"attributes": [
-			"gen_ai.operation.name",
-			"openinference.span.kind",
-			"openwebui.operation.purpose"
-		]
-	}
+  {
+    "name": "embeddings",
+    "parent": "retrieval",
+    "attributes": [
+      "gen_ai.embeddings.dimension.count",
+      "gen_ai.operation.name"
+    ]
+  },
+  {
+    "name": "vector_search",
+    "parent": "retrieval",
+    "attributes": []
+  },
+  {
+    "name": "rerank",
+    "parent": "retrieval",
+    "attributes": [
+      "openwebui.retrieval.candidate_count"
+    ]
+  },
+  {
+    "name": "execute_tool retrieval-tool",
+    "parent": "retrieval",
+    "attributes": [
+      "gen_ai.operation.name",
+      "gen_ai.tool.call.id",
+      "gen_ai.tool.name",
+      "gen_ai.tool.type"
+    ]
+  },
+  {
+    "name": "retrieval",
+    "parent": "invoke_workflow open-webui.chat",
+    "attributes": [
+      "gen_ai.operation.name",
+      "gen_ai.retrieval.documents",
+      "openwebui.retrieval.top_k"
+    ]
+  },
+  {
+    "name": "invoke_workflow open-webui.chat",
+    "parent": null,
+    "attributes": [
+      "gen_ai.operation.name",
+      "openwebui.operation.purpose"
+    ]
+  }
 ]

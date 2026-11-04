@@ -1,7 +1,10 @@
+import json
+
 import pytest
 from open_webui.utils.telemetry.genai.config import GenAIConfig
 from open_webui.utils.telemetry.genai.retrieval import instrument_embedding, instrument_reranker, traced_retrieval
 from open_webui.utils.telemetry.genai.tracer import GenAITracer
+from opentelemetry.trace import SpanKind
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
@@ -26,7 +29,8 @@ async def test_retrieval_tree_has_embedding_and_rerank_children():
     spans = exporter.get_finished_spans()
     assert [span.name for span in spans] == ['embeddings', 'rerank', 'retrieval']
     assert all(span.parent.span_id == parent.get_span_context().span_id for span in spans[:2])
-    assert spans[1].attributes['openinference.span.kind'] == 'RERANKER'
+    assert spans[1].kind == SpanKind.INTERNAL
+    assert 'gen_ai.operation.name' not in spans[1].attributes
 
 
 @pytest.mark.asyncio
@@ -41,11 +45,11 @@ async def test_embedding_and_retrieval_content_are_private_by_default():
 
     with tracer.retrieval('retrieval') as parent:
         await instrument_embedding(tracer, embedding)('secret query')
-        parent.set_attribute('gen_ai.retrieval.documents', ['{"document_id": "doc-1", "rank": 1, "score": 0.9}'])
+
     spans = exporter.get_finished_spans()
     assert 'gen_ai.retrieval.query.text' not in spans[0].attributes
     assert 'gen_ai.embeddings' not in spans[0].attributes
-    assert spans[-1].attributes['gen_ai.retrieval.documents']
+    assert 'gen_ai.retrieval.documents' not in spans[-1].attributes
 
 
 @pytest.mark.asyncio
@@ -75,6 +79,9 @@ async def test_embedding_vectors_and_document_content_are_capped_when_enabled():
     spans = exporter.get_finished_spans()
     embedding_span = next(span for span in spans if span.name == 'embeddings')
     retrieval_span = next(span for span in spans if span.name.startswith('retrieval'))
-    assert len(embedding_span.attributes['gen_ai.embeddings']) <= 8
-    assert '"content": "document"' in retrieval_span.attributes['gen_ai.retrieval.documents']
+    assert embedding_span.attributes['gen_ai.embeddings.dimension.count'] == 4
+    assert json.loads(embedding_span.attributes['openwebui.embedding.vectors']) == [[0.1, 0.2, 0.3, 0.4]]
+    docs = json.loads(retrieval_span.attributes['gen_ai.retrieval.documents'])
+    assert docs[0]['id'] == 'doc-1'
+    assert docs[0]['content'] == 'document'
     assert 'document-content-too-long' not in retrieval_span.attributes['gen_ai.retrieval.documents']

@@ -27,13 +27,18 @@ GEN_AI_RETRIEVAL_TOP_K = _official('GEN_AI_RETRIEVAL_TOP_K', 'gen_ai.retrieval.t
 GEN_AI_DATA_SOURCE_ID = _official('GEN_AI_DATA_SOURCE_ID', 'gen_ai.data_source.id')
 GEN_AI_INPUT_MESSAGES = _official('GEN_AI_INPUT_MESSAGES', 'gen_ai.input.messages')
 GEN_AI_OUTPUT_MESSAGES = _official('GEN_AI_OUTPUT_MESSAGES', 'gen_ai.output.messages')
-GEN_AI_SYSTEM_INSTRUCTIONS = _official('GEN_AI_SYSTEM_INSTRUCTIONS', 'gen_ai.system.instructions')
+GEN_AI_SYSTEM_INSTRUCTIONS = _official('GEN_AI_SYSTEM_INSTRUCTIONS', 'gen_ai.system_instructions')
 GEN_AI_RESPONSE_FINISH_REASONS = _official('GEN_AI_RESPONSE_FINISH_REASONS', 'gen_ai.response.finish_reasons')
 GEN_AI_REQUEST_TEMPERATURE = _official('GEN_AI_REQUEST_TEMPERATURE', 'gen_ai.request.temperature')
 GEN_AI_REQUEST_TOP_P = _official('GEN_AI_REQUEST_TOP_P', 'gen_ai.request.top_p')
 GEN_AI_REQUEST_MAX_TOKENS = _official('GEN_AI_REQUEST_MAX_TOKENS', 'gen_ai.request.max_tokens')
 GEN_AI_REQUEST_SEED = _official('GEN_AI_REQUEST_SEED', 'gen_ai.request.seed')
-GEN_AI_EMBEDDINGS = _official('GEN_AI_EMBEDDINGS', 'gen_ai.embeddings')
+GEN_AI_EMBEDDINGS_DIMENSION_COUNT = _official('GEN_AI_EMBEDDINGS_DIMENSION_COUNT', 'gen_ai.embeddings.dimension.count')
+GEN_AI_WORKFLOW_NAME = _official('GEN_AI_WORKFLOW_NAME', 'gen_ai.workflow.name')
+
+OPENWEBUI_EMBEDDING_INPUT = 'openwebui.embedding.input'
+OPENWEBUI_EMBEDDING_VECTORS = 'openwebui.embedding.vectors'
+OPENWEBUI_RETRIEVAL_COLLECTION_NAMES = 'openwebui.retrieval.collection_names'
 
 OPENWEBUI_MESSAGE_ID = 'openwebui.message.id'
 OPENWEBUI_OPERATION_PURPOSE = 'openwebui.operation.purpose'
@@ -74,7 +79,9 @@ ALIASES = {
     'top_p': GEN_AI_REQUEST_TOP_P,
     'max_tokens': GEN_AI_REQUEST_MAX_TOKENS,
     'seed': GEN_AI_REQUEST_SEED,
-    'embedding_vectors': GEN_AI_EMBEDDINGS,
+    'embedding_text': OPENWEBUI_EMBEDDING_INPUT,
+    'embedding_vectors': OPENWEBUI_EMBEDDING_VECTORS,
+    'workflow_name': GEN_AI_WORKFLOW_NAME,
     'message_id': OPENWEBUI_MESSAGE_ID,
     'purpose': OPENWEBUI_OPERATION_PURPOSE,
     'tool_type': GEN_AI_TOOL_TYPE,

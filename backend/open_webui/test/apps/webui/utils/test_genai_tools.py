@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from open_webui.utils.telemetry.genai.config import GenAIConfig
 from open_webui.utils.telemetry.genai.tools import traced_tool
@@ -99,5 +101,6 @@ async def test_tool_payloads_are_captured_when_enabled():
         call=call,
     )
     attributes = exporter.get_finished_spans()[0].attributes
-    assert 'value' in attributes['gen_ai.tool.call.arguments']
-    assert 'ok' in attributes['gen_ai.tool.call.result']
+    assert json.loads(attributes['gen_ai.tool.call.arguments']) == {'argument': 'value'}
+    assert json.loads(attributes['gen_ai.tool.call.result']) == {'result': 'ok'}
+    assert 'gen_ai.retrieval.documents' not in attributes
