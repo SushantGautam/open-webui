@@ -85,3 +85,63 @@ async def test_embedding_vectors_and_document_content_are_capped_when_enabled():
     assert docs[0]['id'] == 'doc-1'
     assert docs[0]['content'] == 'document'
     assert 'document-content-too-long' not in retrieval_span.attributes['gen_ai.retrieval.documents']
+
+
+@pytest.mark.asyncio
+async def test_knowledge_tool_lookup_is_a_retrieval_span_with_documents():
+    """Agentic knowledge search records its chunks on a child retrieval span, not the tool span."""
+    from open_webui.utils.telemetry.genai.retrieval import traced_knowledge_tool
+
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    tracer = GenAITracer(
+        provider.get_tracer('knowledge-tool-test'),
+        GenAIConfig(capture_retrieval_documents=True, capture_retrieval_query=True),
+    )
+
+    @traced_knowledge_tool(tracer)
+    async def query_knowledge_files(query: str, count: int = 5, __request__=None):
+        return json.dumps(
+            [
+                {
+                    'content': 'Electronics keep the 15-day window.',
+                    'source': 'refunds.md',
+                    'file_id': 'f1',
+                    'distance': 0.2,
+                },
+                {'error': 'not a chunk'},
+            ]
+        )
+
+    with tracer.tool('execute_tool query_knowledge_files', operation_name='execute_tool') as tool_span:
+        result = await query_knowledge_files('electronics window', count=3)
+
+    assert json.loads(result)[0]['source'] == 'refunds.md'  # the tool result is unchanged
+    spans = {span.name: span for span in exporter.get_finished_spans()}
+    retrieval = spans['retrieval']
+    assert retrieval.parent.span_id == tool_span.get_span_context().span_id
+    assert retrieval.attributes['gen_ai.operation.name'] == 'retrieval'
+    assert retrieval.attributes['gen_ai.retrieval.top_k'] == 3
+    assert json.loads(retrieval.attributes['gen_ai.retrieval.documents']) == [
+        {'source': 'refunds.md', 'file_id': 'f1', 'content': 'Electronics keep the 15-day window.'}
+    ]
+    assert 'gen_ai.retrieval.documents' not in spans['execute_tool query_knowledge_files'].attributes
+
+
+@pytest.mark.asyncio
+async def test_knowledge_tool_error_result_records_no_documents():
+    from open_webui.utils.telemetry.genai.retrieval import traced_knowledge_tool
+
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    tracer = GenAITracer(provider.get_tracer('knowledge-tool-error'), GenAIConfig(capture_retrieval_documents=True))
+
+    @traced_knowledge_tool(tracer)
+    async def query_knowledge_files(query: str, count: int = 5):
+        return json.dumps({'error': 'Embedding function not configured'})
+
+    await query_knowledge_files('x')
+    (span,) = exporter.get_finished_spans()
+    assert 'gen_ai.retrieval.documents' not in span.attributes

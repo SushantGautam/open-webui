@@ -70,6 +70,10 @@ from open_webui.utils.json_codec import JSONCodec
 from open_webui.utils.notifications import notify_target
 from open_webui.utils.sanitize import sanitize_code
 from open_webui.utils.skill_files import SkillFile, SkillFileOperation, skill_content_page, skill_overview
+from open_webui.utils.telemetry.genai.retrieval import traced_knowledge_tool
+from open_webui.utils.telemetry.genai.tracer import GenAITracer
+
+_genai_tracer = GenAITracer()
 
 log = logging.getLogger(__name__)
 
@@ -3228,6 +3232,7 @@ async def list_knowledge(
         return JSONCodec.dumps({'error': str(e)})
 
 
+@traced_knowledge_tool(_genai_tracer)
 async def query_knowledge_files(
     query: str,
     knowledge_ids: Optional[list[str]] = None,
