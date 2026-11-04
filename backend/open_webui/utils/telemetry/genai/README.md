@@ -1,6 +1,6 @@
 # OpenTelemetry GenAI telemetry
 
-This package emits vendor-neutral OpenTelemetry GenAI spans, following the
+This package emits OpenTelemetry GenAI spans (without alternative AI span-kind attributes), following the
 [OpenTelemetry GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai).
 Structural attributes and content are emitted by default. Each content value has its own
 `OTEL_GENAI_CAPTURE_*` flag (on by default, except embedding vectors) and is truncated to
