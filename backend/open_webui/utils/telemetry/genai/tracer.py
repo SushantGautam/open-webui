@@ -2,7 +2,6 @@ import logging
 from contextlib import contextmanager
 
 from open_webui.utils.telemetry.genai import context, extractors, semconv
-from open_webui.utils.telemetry.genai import openinference as oi
 from open_webui.utils.telemetry.genai.config import GenAIConfig
 from opentelemetry import trace
 from opentelemetry.trace import StatusCode
@@ -131,7 +130,6 @@ class GenAITracer:
                     resolved = {
                         semconv.attribute_key(key): value for key, value in safe_attrs.items() if value is not None
                     }
-                    resolved.update(oi.attributes_for(kind))
                     if resolved:
                         span.set_attributes(resolved)
                     if kind == 'workflow':
