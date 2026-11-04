@@ -51,17 +51,17 @@ caps individual string fields (not the total serialized attribute length);
 arrays and objects are also capped to 100 entries per nesting level. At most
 `GenAIConfig.retrieval_max_documents` retrieved documents are captured.
 
-## Capture configuration — changed default
+## Capture configuration
 
-**Content capture is opt-in** (previously most fields were enabled by default).
-Structural telemetry remains enabled.
+**Content capture is on by default** (`OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT`
+defaults to `true`). Set it to `false` to emit structural telemetry only.
 
 ```bash
-OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT=true
+OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT=true   # default; set false to disable
 OTEL_GENAI_CONTENT_MAX_LENGTH=10000
 ```
 
-The standard `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT` flag enables content
+The standard `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT` flag controls content
 capture. Existing field-level switches still override it individually:
 
 `OTEL_GENAI_CAPTURE_INPUTS`, `OTEL_GENAI_CAPTURE_OUTPUTS`,

@@ -31,7 +31,7 @@ class GenAIConfig:
             max_length = max(int(os.getenv('OTEL_GENAI_CONTENT_MAX_LENGTH', '10000')), 0)
         except (TypeError, ValueError):
             max_length = 10000
-        master = _as_bool(os.getenv('OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT', 'false'))
+        master = _as_bool(os.getenv('OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT', 'true'))
         return cls(
             enabled=os.getenv('OTEL_GENAI_ENABLED', 'true').strip().lower() not in {'0', 'false', 'no', 'off'},
             capture_inputs=_flag('OTEL_GENAI_CAPTURE_INPUTS', master),

@@ -26,9 +26,13 @@ def tracer_with_spans(config=None):
     return GenAITracer(provider.get_tracer('semconv-test'), config or GenAIConfig()), exporter
 
 
-def test_content_capture_is_opt_in_and_legacy_flags_override(monkeypatch):
+def test_content_capture_is_on_by_default_and_legacy_flags_override(monkeypatch):
     monkeypatch.delenv('OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT', raising=False)
     monkeypatch.delenv('OTEL_GENAI_CAPTURE_TOOL_RESULTS', raising=False)
+    assert GenAIConfig.from_env().capture_outputs
+    assert GenAIConfig.from_env().capture_tool_results
+    assert not GenAIConfig.from_env().capture_embedding_vectors
+    monkeypatch.setenv('OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT', 'false')
     assert not GenAIConfig.from_env().capture_outputs
     assert not GenAIConfig.from_env().capture_tool_results
     monkeypatch.setenv('OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT', 'true')
