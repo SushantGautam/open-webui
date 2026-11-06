@@ -117,6 +117,16 @@ WEBUI_SUBPATH=/chat open-webui serve
 Docker remains the recommended deployment (systemd-friendly, data volume,
 model management); uvx/pip suit quick runs and custom hosting.
 
+## Custom script hook (`WEBUI_CUSTOM_JS_URL`)
+
+A small additive patch, independent of the subpath work and generic (the fork still knows nothing
+about any particular consumer). When the env var `WEBUI_CUSTOM_JS_URL` is set to an `https://` URL
+or an absolute path, `/api/config` returns it as `custom_js_url` and the frontend
+(`src/routes/+layout.svelte`) loads that script once, on every page. Empty (the default) loads
+nothing. The operator controls the URL, so the script is as trusted as the deployment: it runs
+with full access to the signed-in session. Three call sites, all marked "Fork patch":
+`env.py`, `main.py` (`get_app_config`), `+layout.svelte`.
+
 ## Serving behind a proxy
 
 The proxy must forward **without stripping** the prefix (the app generates

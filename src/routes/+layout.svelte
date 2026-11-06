@@ -1353,6 +1353,16 @@
 		if (backendConfig) {
 			// Save Backend Status to Store
 			await config.set(backendConfig);
+
+			// Fork patch (additive): optional site-wide script from WEBUI_CUSTOM_JS_URL, loaded once.
+			// It is set by the operator and runs with the signed-in session's full access.
+			if (backendConfig.custom_js_url && !document.querySelector('script[data-custom-js]')) {
+				const customScript = document.createElement('script');
+				customScript.src = backendConfig.custom_js_url;
+				customScript.async = true;
+				customScript.dataset.customJs = 'true';
+				document.head.appendChild(customScript);
+			}
 			// LICENSE covers this Open WebUI branding surface, including name, logo,
 			// visual, textual, symbolic identifiers, metadata, and surrounding UI.
 			// Do not alter, remove, obscure, or replace it except as LICENSE permits:

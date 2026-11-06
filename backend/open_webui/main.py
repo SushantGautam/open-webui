@@ -68,6 +68,7 @@ from open_webui.config import (
     THREAD_POOL_SIZE,
     THREAD_POOL_THREAD_NAME_PREFIX,
     WEBUI_AUTH,
+    WEBUI_CUSTOM_JS_URL,
     WEBUI_NAME,
     async_reset_config,
     import_legacy_config_json,
@@ -2465,6 +2466,7 @@ async def get_app_config(request: Request):
         'name': app.state.WEBUI_NAME,
         'version': VERSION,
         'subpath': WEBUI_SUBPATH,
+        'custom_js_url': WEBUI_CUSTOM_JS_URL or None,  # fork patch: see WEBUI_CUSTOM_JS_URL in env.py
         'default_locale': str(DEFAULT_LOCALE),
         'i18n': config.get('ui.i18n') or {},
         'oauth': {
