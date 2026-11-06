@@ -974,7 +974,9 @@ if WEBUI_NAME != 'Open WebUI':
 # The operator sets it (an https URL or an absolute path), so it is as trusted as the deployment
 # itself: it runs with full access to the signed-in session. Empty (the default) loads nothing.
 _custom_js_url = os.getenv('WEBUI_CUSTOM_JS_URL', '').strip()
-WEBUI_CUSTOM_JS_URL = _custom_js_url if _custom_js_url.startswith(('https://', '/')) and not _custom_js_url.startswith('//') else ''
+WEBUI_CUSTOM_JS_URL = (
+    _custom_js_url if _custom_js_url.startswith(('https://', '/')) and not _custom_js_url.startswith('//') else ''
+)
 
 # LICENSE covers this Open WebUI branding surface, including this favicon
 # and any visual, textual, or symbolic identifiers it preserves.

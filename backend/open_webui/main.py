@@ -42,6 +42,7 @@ from starsessions import (
 )
 from starsessions.stores.redis import RedisStore
 
+from open_webui.env import WEBUI_CUSTOM_JS_URL  # fork patch: see env.py
 from open_webui.config import (
     BYPASS_ADMIN_ACCESS_CONTROL,
     CACHE_DIR,
@@ -68,7 +69,6 @@ from open_webui.config import (
     THREAD_POOL_SIZE,
     THREAD_POOL_THREAD_NAME_PREFIX,
     WEBUI_AUTH,
-    WEBUI_CUSTOM_JS_URL,
     WEBUI_NAME,
     async_reset_config,
     import_legacy_config_json,
